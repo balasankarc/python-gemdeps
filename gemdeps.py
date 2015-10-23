@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+from jinja2 import Environment, FileSystemLoader
 import json
 import os
 import sys
@@ -157,12 +158,24 @@ class DetailedDependency(GemfileParser.Dependency):
 
 
 def generate_html_csv(extended_dep_list):
-    csvout = open("Gemfile.csv", "w")
+    packaged_count = 0
+    unpackaged_count = 0
+    itp_count = 0
+    total = 0
     for n in extended_dep_list:
-        csvout.write(n.name + "," + n.requirement + "," +
-                     n.version + "," + n.suite + "," +
-                     n.color + "," + n.status + "\n")
-    csvout.close()
+        if n.status == 'Packaged' or n.status == 'NEW':
+            packaged_count += 1
+        elif n.status == 'ITP':
+            itp_count += 1
+        else:
+            unpackaged_count += 1
+    total = len(extended_dep_list)
+    percent_complete = (packaged_count * 100)/total
+    env = Environment(loader=FileSystemLoader('templates'))
+    template = env.get_template('main.html')
+    render = template.render(locals())
+    with open("index.html", "w") as file:
+        file.write(render)
 
 
 def generate_pdf_dot(extended_dep_list):

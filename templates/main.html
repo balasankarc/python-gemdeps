@@ -92,15 +92,16 @@ $(function() {
           <th>Status</th>
         </tr>
       </thead>
-      {% for gem in status %}
-        <tr class="{{ status[gem][3].strip() }}">
+      {% set count = 1 %}
+      {% for dep in extended_dep_list %}
+        <tr class="{{ dep.color }}">
             <td>{{count}}</td>
             {% set count = count+1 %}
-            <td><a href="http://rubygems.org/gems/{{ gem }}">{{gem}}</a></td>
-          <td>{{ status[gem][0] }}</td>
-          <td>{{ status[gem][1] }}</td>
-          <td>{{ status[gem][2] }}</td>
-          <td>{{ status[gem][4] }}</td>
+            <td><a href="http://rubygems.org/gems/{{ dep.name }}">{{dep.name}}</a></td>
+          <td>{{ dep.requirement }}</td>
+          <td>{{ dep.version }}</td>
+          <td>{{ dep.suite }}</td>
+          <td>{{ dep.status }}</td>
         </tr>
       {% endfor %}
     </table>
