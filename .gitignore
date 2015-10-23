@@ -4,6 +4,7 @@
 *.pdf
 *.swp
 *.swo
+*.csv
 Gemfile
 
 # Byte-compiled / optimized / DLL files

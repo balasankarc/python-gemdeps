@@ -1,8 +1,12 @@
-from gemfileparser import GemfileParser
-import json
-import urllib2
-import os
+#!/usr/bin/env python
 
+import argparse
+import json
+import os
+import sys
+import urllib2
+
+from gemfileparser import GemfileParser
 
 exceptions = {'rake': 'rake',
               'rubyntlm': 'ruby-ntlm',
@@ -54,17 +58,14 @@ class DetailedDependency(GemfileParser.Dependency):
         rmadison_output = os.popen(
             'rmadison -s unstable -a amd64,all %s 2>&1' % self.debian_name)
         rmadison_output = rmadison_output.read()
-        # print "rmadison output is " + rmadison_output
         count = 0
         if "curl:" in rmadison_output:
             while "curl:" in rmadison_output:
-                # print "Retrying #", count
                 count = count + 1
                 rmadison_output = os.popen(
                     'rmadison -s unstable -a amd64,all %s 2>&1'
                     % self.debian_name)
                 rmadison_output = rmadison_output.read()
-                # print "rmadison output is " + rmadison_output
         self.suite = "Unstable"
         self.status = "Packaged"
         try:
@@ -78,17 +79,14 @@ class DetailedDependency(GemfileParser.Dependency):
         rmadison_output = os.popen(
             'rmadison -s experimental -a amd64,all %s 2>&1' % self.debian_name)
         rmadison_output = rmadison_output.read()
-        # print "rmadison output is " + rmadison_output
         count = 0
         if "curl:" in rmadison_output:
             while "curl:" in rmadison_output:
-                # print "Retrying #", count
                 count = count + 1
                 rmadison_output = os.popen(
                     'rmadison -s experimental -a amd64,all %s 2>&1'
                     % self.debian_name)
                 rmadison_output = rmadison_output.read()
-                # print "rmadison output is " + rmadison_output
         self.suite = "Experimental"
         self.status = "Packaged"
         try:
@@ -102,17 +100,14 @@ class DetailedDependency(GemfileParser.Dependency):
         rmadison_output = os.popen(
             'rmadison -s new -a amd64,all %s 2>&1' % self.debian_name)
         rmadison_output = rmadison_output.read()
-        # print "rmadison output is " + rmadison_output
         count = 0
         if "curl:" in rmadison_output:
             while "curl:" in rmadison_output:
-                # print "Retrying #", count
                 count = count + 1
                 rmadison_output = os.popen(
                     'rmadison -s new -a amd64,all %s 2>&1'
                     % self.debian_name)
                 rmadison_output = rmadison_output.read()
-                # print "rmadison output is " + rmadison_output
         self.suite = "NEW"
         self.status = "NEW"
         try:
@@ -128,7 +123,6 @@ class DetailedDependency(GemfileParser.Dependency):
         count = 0
         if "curl:" in wnpp_output:
             while "curl:" in wnpp_output:
-                # print "Retrying #", count
                 count = count + 1
                 wnpp_output = os.popen('wnpp-check %s' % self.debian_name)
                 wnpp_output = wnpp_output.read()
@@ -141,70 +135,98 @@ class DetailedDependency(GemfileParser.Dependency):
 
     def set_color(self):
         if self.suite == 'Unstable':
-            self.color = 'success'
+            self.color = 'green'
         elif self.suite == 'Experimental':
-            self.color = 'warning'
+            self.color = 'yellow'
         elif self.suite == 'NEW':
-            self.color = 'active'
+            self.color = 'blue'
         elif self.suite == 'ITP':
-            self.color = 'itp'
+            self.color = 'cyan'
         else:
-            self.color = 'danger'
+            self.color = 'red'
 
     def debian_status(self):
-        # print "####"
-        # print self.debian_name
-        # print "Checking in unstable"
         self.is_in_unstable()
         if self.version == 'NA':
-            # print "Checking in Experimental"
             self.is_in_experimental()
         if self.version == 'NA':
-            # print "Checking in NEW"
             self.is_in_new()
         if self.version == 'NA':
-            # print "Checking in ITP"
             self.is_itp()
         self.set_color()
 
 
+def generate_html_csv(extended_dep_list):
+    csvout = open("Gemfile.csv", "w")
+    for n in extended_dep_list:
+        csvout.write(n.name + "," + n.requirement + "," +
+                     n.version + "," + n.suite + "," +
+                     n.color + "," + n.status + "\n")
+    csvout.close()
+
+
+def generate_pdf_dot(extended_dep_list):
+    pdfout = open("Gemfile.dot", "w")
+    pdfout.write('digraph graphname {\n')
+    for n in extended_dep_list:
+        pdfout.write("\t" + n.name + "[color=" + n.color + "];\n")
+        pdfout.write("\t" + n.parent + " -> " + n.name + " ;\n")
+    pdfout.write('}')
+    pdfout.close()
+    os.popen('dot -Tps Gemfile.dot dependency.pdf')
+
+
 if __name__ == '__main__':
-    parser = GemfileParser('Gemfile')
-    # print "Reading Gemfile"
-    deps = parser.parse()
-    # print "Read Gemfile"
-    counter = 0
-    # print "Reading from rubygems"
-    while True:
-        currentgem = deps[counter].name
-        # print currentgem
-        urlfile = urllib2.urlopen(
-            'https://rubygems.org/api/v1/gems/%s.json' % currentgem)
-        jsondata = json.loads(urlfile.read())
-        for dep in jsondata['dependencies']['runtime']:
-            if dep['name'] not in [x.name for x in deps]:
-                n = parser.Dependency()
-                n.name = dep['name']
-                n.requirement = dep['requirements']
-                n.parent = currentgem
-                deps.append(n)
-        counter = counter + 1
-        if counter >= len(deps):
-            break
-    a = open('deplist.json', 'w')
-    t = json.dumps([dep.__dict__ for dep in deps])
-    a.write(str(t))
-    a.close()
-    extended_dep_list = []
-    b = open("Gemfile.dot", "w")
-    for dep in deps:
-        n = DetailedDependency(dep)
-        n.debian_status()
-        extended_dep_list.append(n)
-        b.write(n.name + "," + n.requirement + "," + n.version +
-                "," + n.suite + "," + n.color + "," + n.status + "\n")
-    b.close()
-    a = open('extendedlist.json', 'w')
-    t = json.dumps([dep.__dict__ for dep in extended_dep_list])
-    a.write(str(t))
-    a.close()
+    parser = argparse.ArgumentParser(
+        description='Get application dependency status')
+    parser.add_argument(
+        "inputtype", help="Type of input : gemfile|gemspec|gem_name")
+    parser.add_argument(
+        "--html", help="Use this option if you want HTML progressbar",
+        action='store_true')
+    parser.add_argument(
+        "--pdf", help="Use this option if you want pdf dependency graph",
+        action='store_true')
+    parser.add_argument("input", help="Input path|name")
+    args = parser.parse_args()
+    if args.inputtype == 'gemfile':
+        if args.input:
+            path = os.path.abspath(args.input)
+            gemparser = GemfileParser(path)
+            deps = gemparser.parse()
+            counter = 0
+            while True:
+                currentgem = deps[counter].name
+                urlfile = urllib2.urlopen(
+                    'https://rubygems.org/api/v1/gems/%s.json' % currentgem)
+                jsondata = json.loads(urlfile.read())
+                for dep in jsondata['dependencies']['runtime']:
+                    if dep['name'] not in [x.name for x in deps]:
+                        n = gemparser.Dependency()
+                        n.name = dep['name']
+                        n.requirement = dep['requirements']
+                        n.parent = currentgem
+                        deps.append(n)
+                counter = counter + 1
+                if counter >= len(deps):
+                    break
+            deplistout = open('deplist.json', 'w')
+            t = json.dumps([dep.__dict__ for dep in deps])
+            deplistout.write(str(t))
+            deplistout.close()
+            extended_dep_list = []
+            for dep in deps:
+                n = DetailedDependency(dep)
+                n.debian_status()
+                extended_dep_list.append(n)
+            jsonout = open('debian_status.json', 'w')
+            t = json.dumps([dep.__dict__ for dep in extended_dep_list])
+            jsonout.write(str(t))
+            jsonout.close()
+            if args.html:
+                generate_html_csv(extended_dep_list)
+            if args.pdf:
+                generate_pdf_dot(extended_dep_list)
+        else:
+            print "You need to specify an input file or gem name"
+            sys.exit(0)
