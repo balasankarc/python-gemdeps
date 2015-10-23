@@ -16,14 +16,16 @@ class GemfileParser:
             self.autorequire = ''
             self.source = ''
             self.parent = ''
+            self.group = ''
 
         def __str__(self):
             return self.name
 
-    gemname_regex = re.compile(r"(?P<gemname>[a-zA-Z _-]+)")
+    gemname_regex = re.compile(r"(?P<gemname>[a-zA-Z]+[0-9a-zA-Z _-]*)")
     req_regex = re.compile(r"(?P<reqs>([>|<|=|~>|\d]+[ ]*[0-9\.\w]+[ ,]*)+)")
     source_regex = re.compile(r"source:[ ]?(?P<source>[a-zA-Z:\/\.-]+)")
     autoreq_regex = re.compile(r"require:[ ]?(?P<autoreq>[a-zA-Z:\/\.-]+)")
+    group_regex = re.compile(r"group:[ ]?(?P<groupname>[a-zA-Z:\/\.-]+)")
 
     def __init__(self, filepath):
         self.gemfile = open(filepath)
@@ -56,6 +58,10 @@ class GemfileParser:
                         match = self.source_regex.match(k)
                         if match:
                             dep.source = match.group('source')
+                            continue
+                        match = self.group_regex.match(k)
+                        if match:
+                            dep.group = match.group('groupname')
                             continue
                         match = self.autoreq_regex.match(k)
                         if match:
