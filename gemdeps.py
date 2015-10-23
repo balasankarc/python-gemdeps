@@ -4,7 +4,6 @@ import argparse
 from jinja2 import Environment, FileSystemLoader
 import json
 import os
-import sys
 import urllib2
 
 from gemfileparser import GemfileParser
@@ -37,7 +36,7 @@ class DetailedDependency(GemfileParser.Dependency):
 
     def get_debian_name(self):
         if self.name in exceptions:
-            return exceptions[self.gemname]
+            return exceptions[self.name]
         else:
             hyphen_name = self.name.replace("_", "-")
             debian_name = "ruby-" + hyphen_name
@@ -157,89 +156,99 @@ class DetailedDependency(GemfileParser.Dependency):
         self.set_color()
 
 
-def generate_html_csv(extended_dep_list):
-    packaged_count = 0
-    unpackaged_count = 0
-    itp_count = 0
-    total = 0
-    for n in extended_dep_list:
-        if n.status == 'Packaged' or n.status == 'NEW':
-            packaged_count += 1
-        elif n.status == 'ITP':
-            itp_count += 1
-        else:
-            unpackaged_count += 1
-    total = len(extended_dep_list)
-    percent_complete = (packaged_count * 100)/total
-    env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('main.html')
-    render = template.render(locals())
-    with open("index.html", "w") as file:
-        file.write(render)
+class Gemdeps:
 
+    def __init__(self):
+        self.extended_dep_list = []
 
-def generate_pdf_dot(extended_dep_list):
-    pdfout = open("Gemfile.dot", "w")
-    pdfout.write('digraph graphname {\n')
-    for n in extended_dep_list:
-        pdfout.write("\t" + n.name + "[color=" + n.color + "];\n")
-        pdfout.write("\t" + n.parent + " -> " + n.name + " ;\n")
-    pdfout.write('}')
-    pdfout.close()
-    os.popen('dot -Tps Gemfile.dot dependency.pdf')
+    def generate_html_csv(self):
+        packaged_count = 0
+        unpackaged_count = 0
+        itp_count = 0
+        total = 0
+        for n in self.extended_dep_list:
+            if n.status == 'Packaged' or n.status == 'NEW':
+                packaged_count += 1
+            elif n.status == 'ITP':
+                itp_count += 1
+            else:
+                unpackaged_count += 1
+        total = len(self.extended_dep_list)
+        percent_complete = (packaged_count * 100)/total
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('main.html')
+        render = template.render(locals())
+        with open("index.html", "w") as file:
+            file.write(render)
+
+    def generate_pdf_dot(self):
+        pdfout = open("Gemfile.dot", "w")
+        pdfout.write('digraph graphname {\n')
+        for n in self.extended_dep_list:
+            pdfout.write("\t" + n.name + "[color=" + n.color + "];\n")
+            pdfout.write("\t" + n.parent + " -> " + n.name + " ;\n")
+        pdfout.write('}')
+        pdfout.close()
+        os.popen('dot -Tps Gemfile.dot dependency.pdf')
+
+    def gemfile(self, path):
+        gemparser = GemfileParser(path)
+        deps = gemparser.parse()
+        counter = 0
+        while True:
+            currentgem = deps[counter].name
+            print currentgem
+            urlfile = urllib2.urlopen(
+                'https://rubygems.org/api/v1/gems/%s.json' % currentgem)
+            jsondata = json.loads(urlfile.read())
+            for dep in jsondata['dependencies']['runtime']:
+                if dep['name'] not in [x.name for x in deps]:
+                    n = gemparser.Dependency()
+                    n.name = dep['name']
+                    n.requirement = dep['requirements']
+                    n.parent = currentgem
+                    deps.append(n)
+            counter = counter + 1
+            if counter >= len(deps):
+                break
+        deplistout = open('deplist.json', 'w')
+        t = json.dumps([dep.__dict__ for dep in deps])
+        deplistout.write(str(t))
+        deplistout.close()
+        for dep in deps:
+            n = DetailedDependency(dep)
+            n.debian_status()
+            self.extended_dep_list.append(n)
+        jsonout = open('debian_status.json', 'w')
+        t = json.dumps([dep.__dict__ for dep in self.extended_dep_list])
+        jsonout.write(str(t))
+        jsonout.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Get application dependency status')
     parser.add_argument(
-        "inputtype", help="Type of input : gemfile|gemspec|gem_name")
+        "inputtype", help="Type of input : gemfile|gemspec|gem_name",
+        choices=['gemfile', 'gemspec', 'gem_name'])
     parser.add_argument(
         "--html", help="Use this option if you want HTML progressbar",
         action='store_true')
     parser.add_argument(
         "--pdf", help="Use this option if you want pdf dependency graph",
         action='store_true')
-    parser.add_argument("input", help="Input path|name")
+    parser.add_argument("input", help="Input path of gemfile or gemspec" +
+                        " file or name of the gem")
     args = parser.parse_args()
+    gemdeps = Gemdeps()
     if args.inputtype == 'gemfile':
-        if args.input:
-            path = os.path.abspath(args.input)
-            gemparser = GemfileParser(path)
-            deps = gemparser.parse()
-            counter = 0
-            while True:
-                currentgem = deps[counter].name
-                urlfile = urllib2.urlopen(
-                    'https://rubygems.org/api/v1/gems/%s.json' % currentgem)
-                jsondata = json.loads(urlfile.read())
-                for dep in jsondata['dependencies']['runtime']:
-                    if dep['name'] not in [x.name for x in deps]:
-                        n = gemparser.Dependency()
-                        n.name = dep['name']
-                        n.requirement = dep['requirements']
-                        n.parent = currentgem
-                        deps.append(n)
-                counter = counter + 1
-                if counter >= len(deps):
-                    break
-            deplistout = open('deplist.json', 'w')
-            t = json.dumps([dep.__dict__ for dep in deps])
-            deplistout.write(str(t))
-            deplistout.close()
-            extended_dep_list = []
-            for dep in deps:
-                n = DetailedDependency(dep)
-                n.debian_status()
-                extended_dep_list.append(n)
-            jsonout = open('debian_status.json', 'w')
-            t = json.dumps([dep.__dict__ for dep in extended_dep_list])
-            jsonout.write(str(t))
-            jsonout.close()
-            if args.html:
-                generate_html_csv(extended_dep_list)
-            if args.pdf:
-                generate_pdf_dot(extended_dep_list)
-        else:
-            print "You need to specify an input file or gem name"
-            sys.exit(0)
+        path = os.path.abspath(args.input)
+        gemdeps.gemfile(path)
+    elif args.inputtype == 'gemspec':
+        pass
+    elif args.inputtype == 'gem_name':
+        pass
+    if args.html:
+        gemdeps.generate_html_csv()
+    if args.pdf:
+        gemdeps.generate_pdf_dot()
