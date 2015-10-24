@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
-from jinja2 import Environment, FileSystemLoader
 import json
 import os
 import urllib2
+
+from jinja2 import Environment, FileSystemLoader
 
 from gemfileparser import GemfileParser
 
