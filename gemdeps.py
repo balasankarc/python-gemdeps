@@ -194,7 +194,8 @@ class Gemdeps:
 
     def gemfile(self, path):
         gemparser = GemfileParser(path)
-        deps = gemparser.parse()
+        completedeps = gemparser.parse()
+        deps = completedeps['runtime']
         counter = 0
         while True:
             currentgem = deps[counter].name
