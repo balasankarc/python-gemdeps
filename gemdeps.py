@@ -7,7 +7,7 @@ import urllib2
 
 from jinja2 import Environment, FileSystemLoader
 
-from gemfileparser import GemfileParser
+from gemfileparser import gemfileparser
 
 exceptions = {'rake': 'rake',
               'rubyntlm': 'ruby-ntlm',
@@ -32,7 +32,7 @@ exceptions = {'rake': 'rake',
               "pyu-ruby-sasl": "ruby-sasl"}
 
 
-class DetailedDependency(GemfileParser.Dependency):
+class DetailedDependency(gemfileparser.GemfileParser.Dependency):
     '''Debian specific details of each gem'''
 
     def get_debian_name(self):
@@ -45,15 +45,16 @@ class DetailedDependency(GemfileParser.Dependency):
 
     def __init__(self, origdependency):
         self.name = origdependency.name
-        self.reqtype = origdependency.reqtype
         self.requirement = origdependency.requirement
         self.autorequire = origdependency.autorequire
         self.source = origdependency.source
         self.parent = origdependency.parent
+        self.group = origdependency.group
         self.debian_name = self.get_debian_name()
         self.color = ''
         self.version = ''
         self.status = ''
+        self.suite = ''
 
     def is_in_unstable(self):
         rmadison_output = os.popen(
@@ -162,11 +163,31 @@ class Gemdeps:
     def __init__(self):
         self.extended_dep_list = []
 
+    def dep_list_from_file(self, path):
+        f = open(path)
+        content = f.read()
+        jsoncontent = json.loads(content)
+        for item in jsoncontent:
+            print item['name']
+            dep = gemfileparser.GemfileParser.Dependency()
+            dep.name = item['name']
+            dep.requirement = item['requirement']
+            dep.group = item['group']
+            dep.parent = item['parent']
+            dep.autorequire = item['autorequire']
+            dep.source = item['source']
+            dep.debian_name = item['debian_name']
+            dep.color = item['color']
+            dep.version = item['version']
+            dep.status = item['status']
+            self.extended_dep_list.append(dep)
+
     def generate_html_csv(self):
         packaged_count = 0
         unpackaged_count = 0
         itp_count = 0
         total = 0
+        extended_dep_list = self.extended_dep_list
         for n in self.extended_dep_list:
             if n.status == 'Packaged' or n.status == 'NEW':
                 packaged_count += 1
@@ -193,30 +214,52 @@ class Gemdeps:
         os.popen('dot -Tps Gemfile.dot dependency.pdf')
 
     def gemfile(self, path):
-        gemparser = GemfileParser(path)
-        completedeps = gemparser.parse()
-        deps = completedeps['runtime']
-        counter = 0
-        while True:
-            currentgem = deps[counter].name
-            print currentgem
-            urlfile = urllib2.urlopen(
-                'https://rubygems.org/api/v1/gems/%s.json' % currentgem)
-            jsondata = json.loads(urlfile.read())
-            for dep in jsondata['dependencies']['runtime']:
-                if dep['name'] not in [x.name for x in deps]:
-                    n = gemparser.Dependency()
-                    n.name = dep['name']
-                    n.requirement = dep['requirements']
-                    n.parent = currentgem
-                    deps.append(n)
-            counter = counter + 1
-            if counter >= len(deps):
-                break
-        deplistout = open('deplist.json', 'w')
-        t = json.dumps([dep.__dict__ for dep in deps])
-        deplistout.write(str(t))
-        deplistout.close()
+        if os.path.isfile('deplist.json'):
+            print "Dependency List found. Using that."
+            f = open('deplist.json')
+            deps = []
+            content = f.read()
+            jsoncontent = json.loads(content)
+            for item in jsoncontent:
+                print item['name']
+                dep = gemfileparser.GemfileParser.Dependency()
+                dep.name = item['name']
+                dep.requirement = item['requirement']
+                dep.group = item['group']
+                dep.parent = item['parent']
+                dep.autorequire = item['autorequire']
+                dep.source = item['source']
+                deps.append(dep)
+        else:
+            gemparser = gemfileparser.GemfileParser(path, 'gitlab')
+            completedeps = gemparser.parse()
+            deps = completedeps['runtime']
+            counter = 0
+            while True:
+                currentgem = deps[counter].name
+                print currentgem
+                if "rails-assets" not in currentgem:
+                    urlfile = urllib2.urlopen(
+                        'https://rubygems.org/api/v1/gems/%s.json'
+                        % currentgem)
+                    jsondata = json.loads(urlfile.read())
+                    for dep in jsondata['dependencies']['runtime']:
+                        if dep['name'] not in [x.name for x in deps]:
+                            n = gemparser.Dependency()
+                            n.name = dep['name']
+                            n.requirement = dep['requirements']
+                            n.parent = currentgem
+                            deps.append(n)
+                    counter = counter + 1
+                    if counter >= len(deps):
+                        break
+                else:
+                    counter = counter + 1
+                    continue
+            deplistout = open('deplist.json', 'w')
+            t = json.dumps([dep.__dict__ for dep in deps])
+            deplistout.write(str(t))
+            deplistout.close()
         for dep in deps:
             n = DetailedDependency(dep)
             n.debian_status()
