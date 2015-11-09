@@ -9,35 +9,35 @@ from jinja2 import Environment, FileSystemLoader
 
 from gemfileparser import gemfileparser
 
-exceptions = {'rake': 'rake',
-              'rubyntlm': 'ruby-ntlm',
-              'rails': 'rails',
-              'asciidoctor': 'asciidoctor',
-              'unicorn': 'unicorn',
-              'capistrano': 'capistrano',
-              'cucumber': 'cucumber',
-              'rubyzip': 'ruby-zip',
-              'thin': 'thin',
-              'racc': 'racc',
-              'pry': 'pry',
-              'rexical': 'rexical',
-              'messagebus_ruby_api': 'ruby-messagebus-api',
-              'bundler': 'bundler',
-              'org-ruby': 'ruby-org',
-              'CFPropertyList': 'ruby-cfpropertylist',
-              'ruby-saml': 'ruby-saml',
-              'ruby_parser': 'ruby-parser',
-              'RedCloth': 'ruby-redcloth',
-              'gitlab_omniauth-ldap': 'ruby-omniauth-ldap',
-              "pyu-ruby-sasl": "ruby-sasl"}
+gem_exceptions = {'rake': 'rake',
+                  'rubyntlm': 'ruby-ntlm',
+                  'rails': 'rails',
+                  'asciidoctor': 'asciidoctor',
+                  'unicorn': 'unicorn',
+                  'capistrano': 'capistrano',
+                  'cucumber': 'cucumber',
+                  'rubyzip': 'ruby-zip',
+                  'thin': 'thin',
+                  'racc': 'racc',
+                  'pry': 'pry',
+                  'rexical': 'rexical',
+                  'messagebus_ruby_api': 'ruby-messagebus-api',
+                  'bundler': 'bundler',
+                  'org-ruby': 'ruby-org',
+                  'CFPropertyList': 'ruby-cfpropertylist',
+                  'ruby-saml': 'ruby-saml',
+                  'ruby_parser': 'ruby-parser',
+                  'RedCloth': 'ruby-redcloth',
+                  'gitlab_omniauth-ldap': 'ruby-omniauth-ldap',
+                  "pyu-ruby-sasl": "ruby-sasl"}
 
 
 class DetailedDependency(gemfileparser.GemfileParser.Dependency):
     '''Debian specific details of each gem'''
 
     def get_debian_name(self):
-        if self.name in exceptions:
-            return exceptions[self.name]
+        if self.name in gem_exceptions:
+            return gem_exceptions[self.name]
         else:
             hyphen_name = self.name.replace("_", "-")
             debian_name = "ruby-" + hyphen_name
@@ -196,7 +196,7 @@ class Gemdeps:
             else:
                 unpackaged_count += 1
         total = len(self.extended_dep_list)
-        percent_complete = (packaged_count * 100)/total
+        percent_complete = (packaged_count * 100) / total
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template('main.html')
         render = template.render(locals())
