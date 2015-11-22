@@ -148,6 +148,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.color = 'red'
 
     def debian_status(self):
+        print self.name
         self.is_in_unstable()
         if self.version == 'NA':
             self.is_in_experimental()
@@ -160,8 +161,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
 
 class Gemdeps:
 
-    def __init__(self):
+    def __init__(self, appname):
         self.extended_dep_list = []
+        self.appname = appname
 
     def dep_list_from_file(self, path):
         f = open(path)
@@ -183,6 +185,7 @@ class Gemdeps:
             self.extended_dep_list.append(dep)
 
     def generate_html_csv(self):
+        appname = self.appname
         packaged_count = 0
         unpackaged_count = 0
         itp_count = 0
@@ -200,23 +203,26 @@ class Gemdeps:
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template('main.html')
         render = template.render(locals())
-        with open("index.html", "w") as file:
+        print "Generating HTML"
+        with open(self.appname + ".html", "w") as file:
             file.write(render)
 
     def generate_pdf_dot(self):
-        pdfout = open("Gemfile.dot", "w")
+        pdfout = open(self.appname + ".dot", "w")
         pdfout.write('digraph graphname {\n')
         for n in self.extended_dep_list:
-            pdfout.write("\t" + n.name + "[color=" + n.color + "];\n")
-            pdfout.write("\t" + n.parent + " -> " + n.name + " ;\n")
+            pdfout.write("\t" + n.name.replace('-', '_') +
+                         "[color=" + n.color + "];\n")
+            pdfout.write("\t" + n.parent.replace('-', '_') +
+                         " -> " + n.name.replace('-', '_') + " ;\n")
         pdfout.write('}')
         pdfout.close()
-        os.popen('dot -Tps Gemfile.dot dependency.pdf')
+        os.popen('dot -Tps' + self.appname + '.dot dependency.pdf')
 
     def gemfile(self, path):
-        if os.path.isfile('deplist.json'):
+        if os.path.isfile(self.appname + '_deplist.json'):
             print "Dependency List found. Using that."
-            f = open('deplist.json')
+            f = open(self.appname + '_deplist.json')
             deps = []
             content = f.read()
             jsoncontent = json.loads(content)
@@ -231,7 +237,7 @@ class Gemdeps:
                 dep.source = item['source']
                 deps.append(dep)
         else:
-            gemparser = gemfileparser.GemfileParser(path, 'gitlab')
+            gemparser = gemfileparser.GemfileParser(path, self.appname)
             completedeps = gemparser.parse()
             deps = completedeps['runtime']
             counter = 0
@@ -256,15 +262,16 @@ class Gemdeps:
                 else:
                     counter = counter + 1
                     continue
-            deplistout = open('deplist.json', 'w')
+            deplistout = open(self.appname + '_deplist.json', 'w')
             t = json.dumps([dep.__dict__ for dep in deps])
             deplistout.write(str(t))
             deplistout.close()
+        print "\n\nDebian Status"
         for dep in deps:
             n = DetailedDependency(dep)
             n.debian_status()
             self.extended_dep_list.append(n)
-        jsonout = open('debian_status.json', 'w')
+        jsonout = open(self.appname + '_debian_status.json', 'w')
         t = json.dumps([dep.__dict__ for dep in self.extended_dep_list])
         jsonout.write(str(t))
         jsonout.close()
@@ -284,8 +291,10 @@ if __name__ == '__main__':
         action='store_true')
     parser.add_argument("input", help="Input path of gemfile or gemspec" +
                         " file or name of the gem")
+    parser.add_argument("appname", help="Name of the application")
     args = parser.parse_args()
-    gemdeps = Gemdeps()
+    appname = args.appname
+    gemdeps = Gemdeps(appname)
     if args.inputtype == 'gemfile':
         path = os.path.abspath(args.input)
         gemdeps.gemfile(path)
