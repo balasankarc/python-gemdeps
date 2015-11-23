@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import urllib2
+import sys
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -43,13 +44,13 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             debian_name = "ruby-" + hyphen_name
             return debian_name
 
-    def __init__(self, origdependency):
-        self.name = origdependency.name
-        self.requirement = origdependency.requirement
-        self.autorequire = origdependency.autorequire
-        self.source = origdependency.source
-        self.parent = origdependency.parent
-        self.group = origdependency.group
+    def __init__(self, origdep=gemfileparser.GemfileParser.Dependency()):
+        self.name = origdep.name
+        self.requirement = origdep.requirement
+        self.autorequire = origdep.autorequire
+        self.source = origdep.source
+        self.parent = origdep.parent
+        self.group = origdep.group
         self.debian_name = self.get_debian_name()
         self.color = ''
         self.version = ''
@@ -148,7 +149,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.color = 'red'
 
     def debian_status(self):
-        print self.name
+        print "\t" + self.name
         self.is_in_unstable()
         if self.version == 'NA':
             self.is_in_experimental()
@@ -162,16 +163,33 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
 class Gemdeps:
 
     def __init__(self, appname):
+        self.dep_list = []
         self.extended_dep_list = []
         self.appname = appname
 
     def dep_list_from_file(self, path):
+        print "Fetching Dependencies"
+        f = open(path)
+        content = f.read()
+        jsoncontent = json.loads(content)
+        for item in jsoncontent:
+            print "\t"+item['name']
+            dep = gemfileparser.GemfileParser.Dependency()
+            dep.name = item['name']
+            dep.requirement = item['requirement']
+            dep.group = item['group']
+            dep.parent = item['parent']
+            dep.autorequire = item['autorequire']
+            dep.source = item['source']
+            self.dep_list.append(dep)
+
+    def deb_status_list_from_file(self, path):
         f = open(path)
         content = f.read()
         jsoncontent = json.loads(content)
         for item in jsoncontent:
             print item['name']
-            dep = gemfileparser.GemfileParser.Dependency()
+            dep = DetailedDependency()
             dep.name = item['name']
             dep.requirement = item['requirement']
             dep.group = item['group']
@@ -211,97 +229,103 @@ class Gemdeps:
         pdfout = open(self.appname + ".dot", "w")
         pdfout.write('digraph graphname {\n')
         for n in self.extended_dep_list:
-            pdfout.write("\t" + n.name.replace('-', '_') +
-                         "[color=" + n.color + "];\n")
-            pdfout.write("\t" + n.parent.replace('-', '_') +
-                         " -> " + n.name.replace('-', '_') + " ;\n")
+            name = n.name.replace('-', '_').replace('.', '_')
+            parent_name = n.parent.replace('-', '_').replace('.', '_')
+            pdfout.write("\t" + name + "[color=" + n.color + "];\n")
+            pdfout.write("\t" + parent_name + " -> " + name + " ;\n")
         pdfout.write('}')
         pdfout.close()
-        os.popen('dot -Tps' + self.appname + '.dot dependency.pdf')
+        os.popen('dot -Tps ' + self.appname + '.dot dependency.pdf')
 
-    def gemfile(self, path):
-        if os.path.isfile(self.appname + '_deplist.json'):
-            print "Dependency List found. Using that."
-            f = open(self.appname + '_deplist.json')
-            deps = []
-            content = f.read()
-            jsoncontent = json.loads(content)
-            for item in jsoncontent:
-                print item['name']
-                dep = gemfileparser.GemfileParser.Dependency()
-                dep.name = item['name']
-                dep.requirement = item['requirement']
-                dep.group = item['group']
-                dep.parent = item['parent']
-                dep.autorequire = item['autorequire']
-                dep.source = item['source']
-                deps.append(dep)
+    def filetype(self, path):
+        if path.lower().endswith('gemfile'):
+            return 'gemfile'
+        elif path.lower().endswith('gemspec'):
+            return 'gemspec'
         else:
-            gemparser = gemfileparser.GemfileParser(path, self.appname)
-            completedeps = gemparser.parse()
-            deps = completedeps['runtime']
-            counter = 0
-            while True:
-                currentgem = deps[counter].name
-                print currentgem
-                if "rails-assets" not in currentgem:
-                    urlfile = urllib2.urlopen(
-                        'https://rubygems.org/api/v1/gems/%s.json'
-                        % currentgem)
-                    jsondata = json.loads(urlfile.read())
-                    for dep in jsondata['dependencies']['runtime']:
-                        if dep['name'] not in [x.name for x in deps]:
-                            n = gemparser.Dependency()
-                            n.name = dep['name']
-                            n.requirement = dep['requirements']
-                            n.parent = currentgem
-                            deps.append(n)
-                    counter = counter + 1
-                    if counter >= len(deps):
-                        break
-                else:
-                    counter = counter + 1
-                    continue
-            deplistout = open(self.appname + '_deplist.json', 'w')
-            t = json.dumps([dep.__dict__ for dep in deps])
-            deplistout.write(str(t))
-            deplistout.close()
-        print "\n\nDebian Status"
-        for dep in deps:
-            n = DetailedDependency(dep)
-            n.debian_status()
-            self.extended_dep_list.append(n)
-        jsonout = open(self.appname + '_debian_status.json', 'w')
-        t = json.dumps([dep.__dict__ for dep in self.extended_dep_list])
-        jsonout.write(str(t))
-        jsonout.close()
+            print "Input filename should end with '.gemfile' or '.gemspec'"
+            sys.exit(0)
+
+    def get_deps(self, path):
+        if not self.extended_dep_list:
+            if not self.dep_list:
+                if self.filetype(path) == 'gemfile':
+                    print "Fetching Dependencies"
+                    gemparser = gemfileparser.GemfileParser(path,
+                                                            self.appname)
+                    completedeps = gemparser.parse()
+                    self.dep_list = completedeps['runtime']
+                    counter = 0
+                    while True:
+                        currentgem = self.dep_list[counter].name
+                        print "\t"+currentgem
+                        if "rails-assets" not in currentgem:
+                            urlfile = urllib2.urlopen(
+                                'https://rubygems.org/api/v1/gems/%s.json'
+                                % currentgem)
+                            jsondata = json.loads(urlfile.read())
+                            for dep in jsondata['dependencies']['runtime']:
+                                if dep['name'] not in [x.name
+                                                       for x in
+                                                       self.dep_list]:
+                                    n = gemparser.Dependency()
+                                    n.name = dep['name']
+                                    n.requirement = dep['requirements']
+                                    n.parent = currentgem
+                                    self.dep_list.append(n)
+                            counter = counter + 1
+                            if counter >= len(self.dep_list):
+                                break
+                        else:
+                            counter = counter + 1
+                            continue
+                    deplistout = open(self.appname + '_deplist.json', 'w')
+                    t = json.dumps([dep.__dict__ for dep in self.dep_list])
+                    deplistout.write(str(t))
+                    deplistout.close()
+            print "\n\nDebian Status"
+            for dep in self.dep_list:
+                n = DetailedDependency(dep)
+                n.debian_status()
+                self.extended_dep_list.append(n)
+            jsonout = open(self.appname + '_debian_status.json', 'w')
+            t = json.dumps([dep.__dict__
+                            for dep in self.extended_dep_list])
+            jsonout.write(str(t))
+            jsonout.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Get application dependency status')
     parser.add_argument(
-        "inputtype", help="Type of input : gemfile|gemspec|gem_name",
-        choices=['gemfile', 'gemspec', 'gem_name'])
-    parser.add_argument(
         "--html", help="Use this option if you want HTML progressbar",
         action='store_true')
     parser.add_argument(
         "--pdf", help="Use this option if you want pdf dependency graph",
         action='store_true')
-    parser.add_argument("input", help="Input path of gemfile or gemspec" +
-                        " file or name of the gem")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--deplistfile", dest="deplist",
+                       help="Provide deplist.json as input\
+                               (Skip fetching dependencies)")
+    group.add_argument("--debstatusfile", dest="debian_status",
+                       help="Provide debian_status.json as input \
+                               (Skip checking Debian status)")
+    group.add_argument("--inputfile", dest="input_file",
+                       help="Input path of gemfile or gemspec")
     parser.add_argument("appname", help="Name of the application")
     args = parser.parse_args()
     appname = args.appname
     gemdeps = Gemdeps(appname)
-    if args.inputtype == 'gemfile':
-        path = os.path.abspath(args.input)
-        gemdeps.gemfile(path)
-    elif args.inputtype == 'gemspec':
-        pass
-    elif args.inputtype == 'gem_name':
-        pass
+    if args.deplist:
+        gemdeps.dep_list_from_file(args.deplist)
+        path = ''
+        gemdeps.get_deps(path)
+    elif args.debian_status:
+        gemdeps.deb_status_list_from_file(args.debian_status)
+    elif args.input_file:
+        path = os.path.abspath(args.input_file)
+        gemdeps.get_deps(path)
     if args.html:
         gemdeps.generate_html_csv()
     if args.pdf:
