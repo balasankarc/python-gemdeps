@@ -6,7 +6,7 @@ Python program to find the dependencies of a Ruby application
 
 > positional arguments:  
 >   inputtype&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Type of input. Values can be either of {gemfile,gemspec,gem_name}  
->   input&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input path of gemfile or gemspec file or name of the gem
+>   input&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input path of gemfile or gemspec file or name of the gem  
 >   appname&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name of the application
 > 
 > optional arguments:  
