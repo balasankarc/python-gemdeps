@@ -8,6 +8,7 @@
 *.html
 Gemfile
 *.Gemfile
+*.bak
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
