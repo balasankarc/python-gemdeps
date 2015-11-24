@@ -225,17 +225,20 @@ class Gemdeps:
         with open(self.appname + ".html", "w") as file:
             file.write(render)
 
-    def generate_pdf_dot(self):
-        pdfout = open(self.appname + ".dot", "w")
-        pdfout.write('digraph graphname {\n')
-        for n in self.extended_dep_list:
-            name = n.name.replace('-', '_').replace('.', '_')
-            parent_name = n.parent.replace('-', '_').replace('.', '_')
-            pdfout.write("\t" + name + "[color=" + n.color + "];\n")
-            pdfout.write("\t" + parent_name + " -> " + name + " ;\n")
-        pdfout.write('}')
-        pdfout.close()
-        os.popen('dot -Tps ' + self.appname + '.dot dependency.pdf')
+    def generate_pdf_dot(self, path=''):
+        if not path:
+            pdfout = open(self.appname + ".dot", "w")
+            pdfout.write('digraph graphname {\n')
+            for n in self.extended_dep_list:
+                name = n.name.replace('-', '_').replace('.', '_')
+                parent_name = n.parent.replace('-', '_').replace('.', '_')
+                pdfout.write("\t" + name + "[color=" + n.color + "];\n")
+                pdfout.write("\t" + parent_name + " -> " + name + " ;\n")
+            pdfout.write('}')
+            pdfout.close()
+            os.popen('dot -Tps ' + self.appname + '.dot -o ' + appname + '_dependency.pdf')
+        else:
+            os.popen('dot -Tps ' + path + ' -o ' + appname + '_dependency.pdf')
 
     def filetype(self, path):
         if path.lower().endswith('gemfile'):
@@ -311,6 +314,8 @@ if __name__ == '__main__':
     group.add_argument("--debstatusfile", dest="debian_status",
                        help="Provide debian_status.json as input \
                                (Skip checking Debian status)")
+    group.add_argument("--dotfile", dest="dotfile",
+                       help="Provide dot file to generate pdf")
     group.add_argument("--inputfile", dest="input_file",
                        help="Input path of gemfile or gemspec")
     parser.add_argument("appname", help="Name of the application")
@@ -329,4 +334,8 @@ if __name__ == '__main__':
     if args.html:
         gemdeps.generate_html_csv()
     if args.pdf:
-        gemdeps.generate_pdf_dot()
+        if args.dotfile:
+            path = args.dotfile
+        else:
+            path = ''
+        gemdeps.generate_pdf_dot(path)
