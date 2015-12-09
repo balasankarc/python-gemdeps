@@ -30,7 +30,8 @@ gem_exceptions = {'rake': 'rake',
                   'ruby_parser': 'ruby-parser',
                   'RedCloth': 'ruby-redcloth',
                   'gitlab_omniauth-ldap': 'ruby-omniauth-ldap',
-                  "pyu-ruby-sasl": "ruby-sasl"}
+                  "pyu-ruby-sasl": "ruby-sasl",
+                  "gitlab-grit": "ruby-grit"}
 
 
 class DetailedDependency(gemfileparser.GemfileParser.Dependency):
