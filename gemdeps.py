@@ -150,6 +150,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.color = 'cyan'
         else:
             self.color = 'red'
+        if not self.satisfied:
+            if self.color not in ['red', 'cyan']:
+                self.color = 'violet'
 
     def get_operator(self, requirement):
         ''' Splits the operator and version from a requirement string'''
@@ -166,9 +169,11 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         gem_requirement, debian_version = self.requirement, self.version
 
         if gem_requirement == '':
-            return True
+            self.satisfied = True
+            return
         if debian_version == 'NA':
-            return False
+            self.satisfied = False
+            return
 
         # Cleaning up version status in Debian
         if ":" in debian_version:
@@ -243,8 +248,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.is_in_new()
         if self.version == 'NA':
             self.is_itp()
-        self.set_color()
         self.version_check()
+        self.set_color()
 
 
 class Gemdeps:
