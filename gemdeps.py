@@ -5,6 +5,7 @@ import json
 import os
 import urllib2
 import sys
+import re
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -57,6 +58,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         self.version = ''
         self.status = ''
         self.suite = ''
+        self.satisfied = ''
 
     def is_in_unstable(self):
         rmadison_output = os.popen(
@@ -149,6 +151,89 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         else:
             self.color = 'red'
 
+    def get_operator(self, requirement):
+        ''' Splits the operator and version from a requirement string'''
+        m = re.search("\d", requirement)
+        pos = m.start()
+        if pos == 0:
+            return '=', requirement
+        check = requirement[:pos].strip()
+        ver = requirement[pos:]
+        return check, ver
+
+    def version_check(self):
+        ''' Returns in debian_version satisfies gem_requirement'''
+        gem_requirement, debian_version = self.requirement, self.version
+
+        if gem_requirement == '':
+            return True
+        if debian_version == 'NA':
+            return False
+
+        # Cleaning up version status in Debian
+        if ":" in debian_version:
+            pos = debian_version.index(":")
+            debian_version = debian_version[pos + 1:]
+        pos_rev = debian_version.index("-")
+        debian_version = debian_version[:pos_rev]
+        if '~' in debian_version:
+            debian_version = debian_version[:debian_version.index('~')]
+        elif '+' in debian_version:
+            debian_version = debian_version[:debian_version.index('+')]
+
+        # Cleaning up version requirement in gem
+        requirement = gem_requirement.split(',')
+        requirement = [x.strip() for x in requirement]
+
+        # Perform comparison
+        status = True
+        for req in requirement:
+            check, ver = self.get_operator(req)
+            if check == '=':
+                if debian_version == ver:
+                    status = True
+                else:
+                    status = False
+                    break
+            elif check == '<=':
+                if debian_version <= ver:
+                    status = True
+                else:
+                    status = False
+                    break
+            elif check == '<':
+                if debian_version < ver:
+                    status = True
+                else:
+                    status = False
+                    break
+            elif check == '>':
+                if debian_version > ver:
+                    status = True
+                else:
+                    status = False
+                    break
+            elif check == '>=':
+                if debian_version >= ver:
+                    status = True
+                else:
+                    status = False
+                    break
+            elif check == '~>':
+                n = min(debian_version.count('.'), ver.count('.'))
+                dotcount = 0
+                i = 0
+                while dotcount < n and i < min(len(debian_version), len(ver)):
+                    if debian_version[i] != ver[i]:
+                        status = False
+                        break
+                    if debian_version[i] == '.':
+                        dotcount += 1
+                    i += 1
+                if status is False:
+                    break
+        self.satisfied = status
+
     def debian_status(self):
         print "\t" + self.name
         self.is_in_unstable()
@@ -159,6 +244,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         if self.version == 'NA':
             self.is_itp()
         self.set_color()
+        self.version_check()
 
 
 class Gemdeps:
@@ -174,7 +260,7 @@ class Gemdeps:
         content = f.read()
         jsoncontent = json.loads(content)
         for item in jsoncontent:
-            print "\t"+item['name']
+            print "\t" + item['name']
             dep = gemfileparser.GemfileParser.Dependency()
             dep.name = item['name']
             dep.requirement = item['requirement']
@@ -237,7 +323,8 @@ class Gemdeps:
                 pdfout.write("\t" + parent_name + " -> " + name + " ;\n")
             pdfout.write('}')
             pdfout.close()
-            os.popen('dot -Tps ' + self.appname + '.dot -o ' + appname + '_dependency.pdf')
+            os.popen('dot -Tps ' + self.appname +
+                     '.dot -o ' + appname + '_dependency.pdf')
         else:
             os.popen('dot -Tps ' + path + ' -o ' + appname + '_dependency.pdf')
 
@@ -262,7 +349,7 @@ class Gemdeps:
                     counter = 0
                     while True:
                         currentgem = self.dep_list[counter].name
-                        print "\t"+currentgem
+                        print "\t" + currentgem
                         if "rails-assets" not in currentgem:
                             urlfile = urllib2.urlopen(
                                 'https://rubygems.org/api/v1/gems/%s.json'
