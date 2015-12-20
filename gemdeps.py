@@ -6,6 +6,7 @@ import os
 import urllib2
 import sys
 import re
+import copy
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -250,7 +251,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.is_itp()
         self.version_check()
         if not self.satisfied:
-            tmp = self
+            tmp = copy.deepcopy(self)
             tmp.suite = ''
             tmp.satisfied = ''
             tmp.version = ''
