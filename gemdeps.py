@@ -35,6 +35,8 @@ gem_exceptions = {'rake': 'rake',
                   "pyu-ruby-sasl": "ruby-sasl",
                   "gitlab-grit": "ruby-grit"}
 
+skip_version_check = ['bootstrap-sass']
+
 
 class DetailedDependency(gemfileparser.GemfileParser.Dependency):
     '''Debian specific details of each gem'''
@@ -168,6 +170,10 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
     def version_check(self):
         ''' Returns in debian_version satisfies gem_requirement'''
         gem_requirement, debian_version = self.requirement, self.version
+
+        if self.name in skip_version_check:
+            self.satisfied = True
+            return
 
         if gem_requirement == '':
             self.satisfied = True
