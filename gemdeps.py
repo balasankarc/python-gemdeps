@@ -249,6 +249,17 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         if self.version == 'NA':
             self.is_itp()
         self.version_check()
+        if not self.satisfied:
+            tmp = self
+            tmp.suite = ''
+            tmp.satisfied = ''
+            tmp.version = ''
+            tmp.is_in_experimental()
+            tmp.version_check()
+            if tmp.satisfied:
+                self.version = tmp.version
+                self.suite = tmp.suite
+                self.satisfied = tmp.satisfied
         self.set_color()
 
 
