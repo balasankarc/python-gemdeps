@@ -374,7 +374,7 @@ class Gemdeps:
                 self.extended_dep_list.append(n)
             jsonout = open(self.appname + '_debian_status.json', 'w')
             t = json.dumps([dep.__dict__
-                            for dep in self.extended_dep_list])
+                            for dep in self.extended_dep_list], indent=4)
             jsonout.write(str(t))
             jsonout.close()
 
