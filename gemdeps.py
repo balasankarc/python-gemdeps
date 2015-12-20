@@ -267,12 +267,8 @@ class Gemdeps:
         for item in jsoncontent:
             print "\t" + item['name']
             dep = gemfileparser.GemfileParser.Dependency()
-            dep.name = item['name']
-            dep.requirement = item['requirement']
-            dep.group = item['group']
-            dep.parent = item['parent']
-            dep.autorequire = item['autorequire']
-            dep.source = item['source']
+            for key in item.keys():
+                setattr(dep, key, item[key])
             self.dep_list.append(dep)
 
     def deb_status_list_from_file(self, path):
@@ -282,16 +278,8 @@ class Gemdeps:
         for item in jsoncontent:
             print item['name']
             dep = DetailedDependency()
-            dep.name = item['name']
-            dep.requirement = item['requirement']
-            dep.group = item['group']
-            dep.parent = item['parent']
-            dep.autorequire = item['autorequire']
-            dep.source = item['source']
-            dep.debian_name = item['debian_name']
-            dep.color = item['color']
-            dep.version = item['version']
-            dep.status = item['status']
+            for key in item.keys():
+                setattr(dep, key, item[key])
             self.extended_dep_list.append(dep)
 
     def generate_html_csv(self):
