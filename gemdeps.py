@@ -47,6 +47,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             return gem_exceptions[self.name]
         else:
             hyphen_name = self.name.replace("_", "-")
+            hyphen_name = hyphen_name.replace("--", "-")
             debian_name = "ruby-" + hyphen_name
             return debian_name
 
