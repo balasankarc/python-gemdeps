@@ -33,7 +33,8 @@ gem_exceptions = {'rake': 'rake',
                   'RedCloth': 'ruby-redcloth',
                   'gitlab_omniauth-ldap': 'ruby-omniauth-ldap',
                   "pyu-ruby-sasl": "ruby-sasl",
-                  "gitlab-grit": "ruby-grit"}
+                  "gitlab-grit": "ruby-grit",
+                  "ruby-fogbugz": "ruby-fogbugz"}
 
 skip_version_check = ['bootstrap-sass']
 
