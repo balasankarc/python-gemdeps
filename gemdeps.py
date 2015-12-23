@@ -35,7 +35,8 @@ gem_exceptions = {'rake': 'rake',
                   "pyu-ruby-sasl": "ruby-sasl",
                   "gitlab-grit": "ruby-grit",
                   "ruby-fogbugz": "ruby-fogbugz",
-                  "ruby-oembed": "ruby-oembed"}
+                  "ruby-oembed": "ruby-oembed",
+                  "gollum-grit_adapter": "ruby-gollum-rugged-adapter"}
 
 skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
 
