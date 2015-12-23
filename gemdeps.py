@@ -34,9 +34,10 @@ gem_exceptions = {'rake': 'rake',
                   'gitlab_omniauth-ldap': 'ruby-omniauth-ldap',
                   "pyu-ruby-sasl": "ruby-sasl",
                   "gitlab-grit": "ruby-grit",
-                  "ruby-fogbugz": "ruby-fogbugz"}
+                  "ruby-fogbugz": "ruby-fogbugz",
+                  "ruby-oembed": "ruby-oembed"}
 
-skip_version_check = ['bootstrap-sass']
+skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
 
 
 class DetailedDependency(gemfileparser.GemfileParser.Dependency):
