@@ -360,7 +360,8 @@ class Gemdeps:
                     gemparser = gemfileparser.GemfileParser(path,
                                                             self.appname)
                     completedeps = gemparser.parse()
-                    self.dep_list = completedeps['runtime']
+                    self.dep_list = completedeps['runtime'] + \
+                        completedeps['production']
                     counter = 0
                     while True:
                         currentgem = self.dep_list[counter].name
