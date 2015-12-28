@@ -388,9 +388,12 @@ class Gemdeps:
                                         if x.name == dep['name']:
                                             n = x
                                             break
-                                    operator, req1 = get_operator(dep['requirements'])
-                                    operator, req2 = get_operator(n.requirement)
-                                    n.requirement = max(req1, req2)
+                                    operator, req1 = get_operator(
+                                        dep['requirements'])
+                                    operator, req2 = get_operator(
+                                        n.requirement)
+                                    if req1 > req2:
+                                        n.requirement = dep['requirements']
                             counter = counter + 1
                             if counter >= len(self.dep_list):
                                 break
