@@ -41,6 +41,17 @@ gem_exceptions = {'rake': 'rake',
 skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
 
 
+def get_operator(requirement):
+    ''' Splits the operator and version from a requirement string'''
+    m = re.search("\d", requirement)
+    pos = m.start()
+    if pos == 0:
+        return '=', requirement
+    check = requirement[:pos].strip()
+    ver = requirement[pos:]
+    return check, ver
+
+
 class DetailedDependency(gemfileparser.GemfileParser.Dependency):
     '''Debian specific details of each gem'''
 
@@ -161,16 +172,6 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             if self.color not in ['red', 'cyan']:
                 self.color = 'violet'
 
-    def get_operator(self, requirement):
-        ''' Splits the operator and version from a requirement string'''
-        m = re.search("\d", requirement)
-        pos = m.start()
-        if pos == 0:
-            return '=', requirement
-        check = requirement[:pos].strip()
-        ver = requirement[pos:]
-        return check, ver
-
     def version_check(self):
         ''' Returns in debian_version satisfies gem_requirement'''
         gem_requirement, debian_version = self.requirement, self.version
@@ -204,7 +205,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         # Perform comparison
         status = True
         for req in requirement:
-            check, ver = self.get_operator(req)
+            check, ver = get_operator(req)
             if check == '=':
                 if debian_version == ver:
                     status = True
@@ -380,6 +381,14 @@ class Gemdeps:
                                     n.requirement = dep['requirements']
                                     n.parent = currentgem
                                     self.dep_list.append(n)
+                                else:
+                                    for x in self.dep_list:
+                                        if x.name == dep['name']:
+                                            n = x
+                                            break
+                                    operator, req1 = get_operator(dep['requirements'])
+                                    operator, req2 = get_operator(n.requirement)
+                                    n.requirement = max(req1, req2)
                             counter = counter + 1
                             if counter >= len(self.dep_list):
                                 break
