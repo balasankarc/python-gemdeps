@@ -247,6 +247,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                     if debian_version[i] == '.':
                         dotcount += 1
                     i += 1
+                if debian_version[i:] < ver[i:]:
+                    status = False
                 if status is False:
                     break
         self.satisfied = status
