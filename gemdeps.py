@@ -43,6 +43,8 @@ skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
 
 def get_operator(requirement):
     ''' Splits the operator and version from a requirement string'''
+    if requirement == '':
+        return '>=', '0'
     m = re.search("\d", requirement)
     pos = m.start()
     if pos == 0:
@@ -440,6 +442,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     appname = args.appname
     gemdeps = Gemdeps(appname)
+    print appname
     if args.deplist:
         gemdeps.dep_list_from_file(args.deplist)
         path = ''
