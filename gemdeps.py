@@ -239,17 +239,23 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                     status = False
                     break
             elif check == '~>':
-                n = min(debian_version.count('.'), ver.count('.'))
-                dotcount = 0
-                i = 0
-                while dotcount < n and i < min(len(debian_version), len(ver)):
-                    if debian_version[i] != ver[i]:
+                deb_ver_int = debian_version.split('.')
+                ver_int = ver.split('.')
+                n = min(len(deb_ver_int), len(ver_int)) - 1
+                partcount = 0
+                while partcount < n:
+                    if deb_ver_int[partcount] != ver_int[partcount]:
                         status = False
                         break
-                    if debian_version[i] == '.':
-                        dotcount += 1
-                    i += 1
-                if debian_version[i:] < ver[i:]:
+                    partcount += 1
+                if partcount < len(deb_ver_int) - 1:
+                    try:
+                        if int(deb_ver_int[partcount]) < int(ver_int[partcount]):
+                            status = False
+                    except:
+                        if deb_ver_int[partcount] < ver_int[partcount]:
+                            status = False
+                else:
                     status = False
                 if status is False:
                     break
