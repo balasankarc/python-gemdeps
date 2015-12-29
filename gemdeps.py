@@ -12,6 +12,8 @@ from jinja2 import Environment, FileSystemLoader
 
 from gemfileparser import gemfileparser
 
+from distutils.version import LooseVersion
+
 gem_exceptions = {'rake': 'rake',
                   'rubyntlm': 'ruby-ntlm',
                   'rails': 'rails',
@@ -208,6 +210,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         status = True
         for req in requirement:
             check, ver = get_operator(req)
+            debian_version = LooseVersion(str(debian_version))
+            ver = LooseVersion(str(ver))
             if check == '=':
                 if debian_version == ver:
                     status = True
@@ -239,8 +243,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                     status = False
                     break
             elif check == '~>':
-                deb_ver_int = debian_version.split('.')
-                ver_int = ver.split('.')
+                deb_ver_int = str(debian_version).split('.')
+                ver_int = str(ver).split('.')
                 # print deb_ver_int, ver_int
                 n = min(len(deb_ver_int), len(ver_int)) - 1
                 # print n
@@ -254,7 +258,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                 if partcount < len(deb_ver_int):
                     # print deb_ver_int[partcount], ver_int[partcount]
                     try:
-                        if int(deb_ver_int[partcount]) < int(ver_int[partcount]):
+                        intdebver = LooseVersion(str(deb_ver_int[partcount]))
+                        intver = LooseVersion(str(ver[partcount]))
+                        if intdebver < intver:
                             status = False
                             # print "False 2"
                     except:
