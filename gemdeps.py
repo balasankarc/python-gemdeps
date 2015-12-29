@@ -274,15 +274,20 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                     break
         self.satisfied = status
 
-    def debian_status(self):
+    def debian_status(self, jsoncontent):
         print "\t" + self.name
-        self.is_in_unstable()
-        if self.version == 'NA':
-            self.is_in_experimental()
-        if self.version == 'NA':
-            self.is_in_new()
-        if self.version == 'NA':
-            self.is_itp()
+        if self.name in jsoncontent:
+            self.version = jsoncontent[self.name]['version']
+            self.suite = jsoncontent[self.name]['suite']
+            self.status = "Packaged"
+        else:
+            self.is_in_unstable()
+            if self.version == 'NA':
+                self.is_in_experimental()
+            if self.version == 'NA':
+                self.is_in_new()
+            if self.version == 'NA':
+                self.is_itp()
         self.version_check()
         if not self.satisfied:
             tmp = copy.deepcopy(self)
@@ -377,6 +382,17 @@ class Gemdeps:
             sys.exit(0)
 
     def get_deps(self, path):
+        jsoncontent = {}
+        currentpath = os.path.abspath(os.path.dirname(__file__))
+        if os.path.isfile(os.path.join(currentpath, "cache")):
+            print "Global Debian Info Cache found. Trying to read it."
+            try:
+                contentfile = open('cache')
+                content = contentfile.read()
+                contentfile.close()
+                jsoncontent = json.loads(content)
+            except:
+                print "Errors in cache file. Skipping it."
         if not self.extended_dep_list:
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
@@ -428,13 +444,21 @@ class Gemdeps:
             print "\n\nDebian Status"
             for dep in self.dep_list:
                 n = DetailedDependency(dep)
-                n.debian_status()
+                n.debian_status(jsoncontent)
                 self.extended_dep_list.append(n)
             jsonout = open(self.appname + '_debian_status.json', 'w')
             t = json.dumps([dep.__dict__
                             for dep in self.extended_dep_list], indent=4)
             jsonout.write(str(t))
             jsonout.close()
+            for dep in self.extended_dep_list:
+                if dep.name not in jsoncontent:
+                    jsoncontent[dep.name] = {
+                        'version': dep.version, 'suite': dep.suite}
+            cacheout = open('cache', 'w')
+            t = json.dumps(jsoncontent, indent=4)
+            cacheout.write(str(t))
+            cacheout.close()
 
 
 if __name__ == '__main__':
