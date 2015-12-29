@@ -277,6 +277,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
     def debian_status(self, jsoncontent):
         print "\t" + self.name
         if self.name in jsoncontent:
+            print "\t\t: Found in cache"
             self.version = jsoncontent[self.name]['version']
             self.suite = jsoncontent[self.name]['suite']
             self.status = "Packaged"
