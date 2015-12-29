@@ -243,8 +243,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                     status = False
                     break
             elif check == '~>':
-                deb_ver_int = str(debian_version).split('.')
-                ver_int = str(ver).split('.')
+                deb_ver_int = debian_version.version
+                ver_int = ver.version
                 # print deb_ver_int, ver_int
                 n = min(len(deb_ver_int), len(ver_int)) - 1
                 # print n
@@ -258,8 +258,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                 if partcount < len(deb_ver_int):
                     # print deb_ver_int[partcount], ver_int[partcount]
                     try:
-                        intdebver = LooseVersion(str(deb_ver_int[partcount]))
-                        intver = LooseVersion(str(ver[partcount]))
+                        intdebver = deb_ver_int[partcount]
+                        intver = ver_int[partcount]
                         if intdebver < intver:
                             status = False
                             # print "False 2"
