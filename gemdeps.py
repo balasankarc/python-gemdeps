@@ -12,6 +12,8 @@ from jinja2 import Environment, FileSystemLoader
 
 from gemfileparser import gemfileparser
 
+from distutils.version import LooseVersion
+
 gem_exceptions = {'rake': 'rake',
                   'rubyntlm': 'ruby-ntlm',
                   'rails': 'rails',
@@ -231,6 +233,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         status = True
         for req in requirement:
             check, ver = get_operator(req)
+            debian_version = LooseVersion(str(debian_version))
+            ver = LooseVersion(str(ver))
             if check == '=':
                 if debian_version == ver:
                     status = True
@@ -262,34 +266,55 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                     status = False
                     break
             elif check == '~>':
-                n = min(debian_version.count('.'), ver.count('.'))
-                dotcount = 0
-                i = 0
-                while dotcount < n and i < min(len(debian_version), len(ver)):
-                    if debian_version[i] != ver[i]:
+                deb_ver_int = debian_version.version
+                ver_int = ver.version
+                # print deb_ver_int, ver_int
+                n = min(len(deb_ver_int), len(ver_int)) - 1
+                # print n
+                partcount = 0
+                while partcount < n:
+                    # print deb_ver_int[partcount], ver_int[partcount]
+                    if deb_ver_int[partcount] != ver_int[partcount]:
                         status = False
                         break
-                    if debian_version[i] == '.':
-                        dotcount += 1
-                    i += 1
-                if debian_version[i:] < ver[i:]:
+                    partcount += 1
+                if partcount < len(deb_ver_int):
+                    # print deb_ver_int[partcount], ver_int[partcount]
+                    try:
+                        intdebver = deb_ver_int[partcount]
+                        intver = ver_int[partcount]
+                        if intdebver < intver:
+                            status = False
+                            # print "False 2"
+                    except:
+                        if deb_ver_int[partcount] < ver_int[partcount]:
+                            status = False
+                            # print "False 2"
+                else:
                     status = False
+                    # print "False 3"
                 if status is False:
                     break
         self.satisfied = status
 
-    def debian_status(self):
+    def debian_status(self, jsoncontent):
         '''
         Calls necessary functions to set the packaging status.
         '''
         print "\t" + self.name
-        self.is_in_unstable()
-        if self.version == 'NA':
-            self.is_in_experimental()
-        if self.version == 'NA':
-            self.is_in_new()
-        if self.version == 'NA':
-            self.is_itp()
+        if self.name in jsoncontent:
+            print "\t\t: Found in cache"
+            self.version = jsoncontent[self.name]['version']
+            self.suite = jsoncontent[self.name]['suite']
+            self.status = "Packaged"
+        else:
+            self.is_in_unstable()
+            if self.version == 'NA':
+                self.is_in_experimental()
+            if self.version == 'NA':
+                self.is_in_new()
+            if self.version == 'NA':
+                self.is_itp()
         self.version_check()
         if not self.satisfied:
             tmp = copy.deepcopy(self)
@@ -406,6 +431,17 @@ class Gemdeps:
         '''
         Main method to get the dependencies of the gems.
         '''
+        jsoncontent = {}
+        currentpath = os.path.abspath(os.path.dirname(__file__))
+        if os.path.isfile(os.path.join(currentpath, "cache")):
+            print "Global Debian Info Cache found. Trying to read it."
+            try:
+                contentfile = open(os.path.join(currentpath, "cache"))
+                content = contentfile.read()
+                contentfile.close()
+                jsoncontent = json.loads(content)
+            except:
+                print "Errors in cache file. Skipping it."
         if not self.extended_dep_list:
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
@@ -457,13 +493,22 @@ class Gemdeps:
             print "\n\nDebian Status"
             for dep in self.dep_list:
                 n = DetailedDependency(dep)
-                n.debian_status()
+                n.debian_status(jsoncontent)
                 self.extended_dep_list.append(n)
             jsonout = open(self.appname + '_debian_status.json', 'w')
             t = json.dumps([dep.__dict__
                             for dep in self.extended_dep_list], indent=4)
             jsonout.write(str(t))
             jsonout.close()
+            for dep in self.extended_dep_list:
+                if dep.name not in jsoncontent:
+                    jsoncontent[dep.name] = {
+                        'version': dep.version, 'suite': dep.suite}
+            currentpath = os.path.abspath(os.path.dirname(__file__))
+            cacheout = open(os.path.join(currentpath, "cache"), "w")
+            t = json.dumps(jsoncontent, indent=4)
+            cacheout.write(str(t))
+            cacheout.close()
 
 
 if __name__ == '__main__':
