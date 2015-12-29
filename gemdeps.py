@@ -67,6 +67,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             return debian_name
 
     def __init__(self, origdep=gemfileparser.GemfileParser.Dependency()):
+        '''
+        Initialize necessary attributes.
+        '''
         self.name = origdep.name
         self.requirement = origdep.requirement
         self.autorequire = origdep.autorequire
@@ -81,11 +84,15 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         self.satisfied = ''
 
     def is_in_unstable(self):
+        '''
+        Check if the dependency is satisfied in unstable.
+        '''
         rmadison_output = os.popen(
             'rmadison -s unstable -a amd64,all %s 2>&1' % self.debian_name)
         rmadison_output = rmadison_output.read()
         count = 0
         if "curl:" in rmadison_output:
+            # If curl returns an error, repeat the steps
             while "curl:" in rmadison_output:
                 count = count + 1
                 rmadison_output = os.popen(
@@ -102,6 +109,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.status = "Unpackaged"
 
     def is_in_experimental(self):
+        '''
+        Check if the dependency is satisfied in experimental.
+        '''
         rmadison_output = os.popen(
             'rmadison -s experimental -a amd64,all %s 2>&1' % self.debian_name)
         rmadison_output = rmadison_output.read()
@@ -123,6 +133,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.status = "Unpackaged"
 
     def is_in_new(self):
+        '''
+        Check if the package is still in the NEW queue.
+        '''
         rmadison_output = os.popen(
             'rmadison -s new -a amd64,all %s 2>&1' % self.debian_name)
         rmadison_output = rmadison_output.read()
@@ -144,6 +157,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.status = "Unpackaged"
 
     def is_itp(self):
+        '''
+        Check if the dependency has an open ITP against it.
+        '''
         wnpp_output = os.popen('wnpp-check %s' % self.debian_name)
         wnpp_output = wnpp_output.read()
         count = 0
@@ -160,6 +176,10 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.status = "Unpackaged"
 
     def set_color(self):
+        '''
+        Set the color for progressbar based on packaging status, suite and
+        satisfaction.
+        '''
         if self.suite == 'Unstable':
             self.color = 'green'
         elif self.suite == 'Experimental':
@@ -172,10 +192,13 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.color = 'red'
         if not self.satisfied:
             if self.color not in ['red', 'cyan']:
+                # Package status has more priority than satisfaction
                 self.color = 'violet'
 
     def version_check(self):
-        ''' Returns in debian_version satisfies gem_requirement'''
+        '''
+        Returns if debian_version satisfies gem_requirement.
+        '''
         gem_requirement, debian_version = self.requirement, self.version
 
         if self.name in skip_version_check:
@@ -256,6 +279,9 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         self.satisfied = status
 
     def debian_status(self):
+        '''
+        Calls necessary functions to set the packaging status.
+        '''
         print "\t" + self.name
         self.is_in_unstable()
         if self.version == 'NA':
@@ -280,13 +306,22 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
 
 
 class Gemdeps:
+    '''
+    Main class to run the program.
+    '''
 
     def __init__(self, appname):
+        '''
+        Initialize necessary attributes.
+        '''
         self.dep_list = []
         self.extended_dep_list = []
         self.appname = appname
 
     def dep_list_from_file(self, path):
+        '''
+        Generate dep_list from _deplist.json file given as input.
+        '''
         print "Fetching Dependencies"
         f = open(path)
         content = f.read()
@@ -299,6 +334,9 @@ class Gemdeps:
             self.dep_list.append(dep)
 
     def deb_status_list_from_file(self, path):
+        '''
+        Generate extended_dep_list from _deplist.json file given as input.
+        '''
         f = open(path)
         content = f.read()
         jsoncontent = json.loads(content)
@@ -310,6 +348,10 @@ class Gemdeps:
             self.extended_dep_list.append(dep)
 
     def generate_html_csv(self):
+        '''
+        Generate CSV file for generating HTML output.
+        '''
+        # TODO - Rewrite this to match with latest statusbar template
         appname = self.appname
         packaged_count = 0
         unpackaged_count = 0
@@ -349,6 +391,9 @@ class Gemdeps:
             os.popen('dot -Tps ' + path + ' -o ' + appname + '_dependency.pdf')
 
     def filetype(self, path):
+        '''
+        Return if file is a Gemfile or a gemspec file.
+        '''
         if path.lower().endswith('gemfile'):
             return 'gemfile'
         elif path.lower().endswith('gemspec'):
@@ -358,6 +403,9 @@ class Gemdeps:
             sys.exit(0)
 
     def get_deps(self, path):
+        '''
+        Main method to get the dependencies of the gems.
+        '''
         if not self.extended_dep_list:
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
