@@ -456,7 +456,8 @@ class Gemdeps:
                 if dep.name not in jsoncontent:
                     jsoncontent[dep.name] = {
                         'version': dep.version, 'suite': dep.suite}
-            cacheout = open('cache', 'w')
+            currentpath = os.path.abspath(os.path.dirname(__file__))
+            cacheout = open(os.path.join(currentpath, "cache"), "w")
             t = json.dumps(jsoncontent, indent=4)
             cacheout.write(str(t))
             cacheout.close()
