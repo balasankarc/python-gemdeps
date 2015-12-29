@@ -388,7 +388,7 @@ class Gemdeps:
         if os.path.isfile(os.path.join(currentpath, "cache")):
             print "Global Debian Info Cache found. Trying to read it."
             try:
-                contentfile = open('cache')
+                contentfile = open(os.path.join(currentpath, "cache"))
                 content = contentfile.read()
                 contentfile.close()
                 jsoncontent = json.loads(content)
