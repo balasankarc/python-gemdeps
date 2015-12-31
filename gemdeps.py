@@ -38,7 +38,8 @@ gem_exceptions = {'rake': 'rake',
                   "gitlab-grit": "ruby-grit",
                   "ruby-fogbugz": "ruby-fogbugz",
                   "ruby-oembed": "ruby-oembed",
-                  "gollum-grit_adapter": "ruby-gollum-rugged-adapter"}
+                  "gollum-grit_adapter": "ruby-gollum-rugged-adapter",
+                  "rails-assets-markdown-it--markdown-it-for-inline": "ruby-rails-assets-markdown-it--markdown-it-for-inline"}
 
 skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
 
