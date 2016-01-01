@@ -302,12 +302,17 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         '''
         Calls necessary functions to set the packaging status.
         '''
-        print "\t" + self.name
+        print "\t" + self.name,
         if self.name in jsoncontent:
-            print "\t\t: Found in cache"
+            print ": Found in cache",
             self.version = jsoncontent[self.name]['version']
             self.suite = jsoncontent[self.name]['suite']
-            self.status = "Packaged"
+            if self.suite == 'Unpackaged':
+                self.status = "Unpackaged"
+            elif self.suite == 'ITP':
+                self.status = "ITP"
+            else:
+                self.status = "Packaged"
         else:
             self.is_in_unstable()
             if self.version == 'NA':
@@ -329,6 +334,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                 self.suite = tmp.suite
                 self.satisfied = tmp.satisfied
         self.set_color()
+        print self.version, self.suite, self.status
 
 
 class Gemdeps:
