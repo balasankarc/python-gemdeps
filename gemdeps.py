@@ -39,7 +39,8 @@ gem_exceptions = {'rake': 'rake',
                   "ruby-fogbugz": "ruby-fogbugz",
                   "ruby-oembed": "ruby-oembed",
                   "gollum-grit_adapter": "ruby-gollum-rugged-adapter",
-                  "rails-assets-markdown-it--markdown-it-for-inline": "ruby-rails-assets-markdown-it--markdown-it-for-inline"}
+                  "rails-assets-markdown-it--markdown-it-for-inline": "ruby-rails-assets-markdown-it--markdown-it-for-inline",
+                  "concurrent-ruby": "ruby-concurrent"}
 
 skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
 
