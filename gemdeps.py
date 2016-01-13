@@ -40,7 +40,9 @@ gem_exceptions = {'rake': 'rake',
                   "ruby-oembed": "ruby-oembed",
                   "gollum-grit_adapter": "ruby-gollum-rugged-adapter",
                   "rails-assets-markdown-it--markdown-it-for-inline": "ruby-rails-assets-markdown-it--markdown-it-for-inline",
-                  "concurrent-ruby": "ruby-concurrent"}
+                  "concurrent-ruby": "ruby-concurrent",
+                  "ruby-beautify": "ruby-beautify",
+                  "ruby-prof": "ruby-prof"}
 
 skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
 
