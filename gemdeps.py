@@ -460,7 +460,8 @@ class Gemdeps:
                                                             self.appname)
                     completedeps = gemparser.parse()
                     self.dep_list = completedeps['runtime'] + \
-                        completedeps['production']
+                        completedeps['production'] + \
+                        completedeps['metrics']
                     counter = 0
                     while True:
                         currentgem = self.dep_list[counter].name
