@@ -88,6 +88,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         self.status = ''
         self.suite = ''
         self.satisfied = ''
+        self.link = ''
 
     def is_in_unstable(self):
         '''
@@ -109,6 +110,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         self.status = "Packaged"
         try:
             self.version = rmadison_output.split("|")[1].strip()
+            self.link = "https://tracker.debian.org/pkg/%s" % self.debian_name
         except:
             self.version = "NA"
             self.suite = "Unpackaged"
@@ -133,6 +135,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         self.status = "Packaged"
         try:
             self.version = rmadison_output.split("|")[1].strip()
+            self.link = "https://tracker.debian.org/pkg/%s" % self.debian_name
         except:
             self.version = "NA"
             self.suite = "Unpackaged"
@@ -157,6 +160,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         self.status = "NEW"
         try:
             self.version = rmadison_output.split("|")[1].strip()
+            self.link = "https://ftp-master.debian.org/new/%s_%s.html" % (
+                self.debian_name, self.version)
         except:
             self.version = "NA"
             self.suite = "Unpackaged"
@@ -174,12 +179,20 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                 count = count + 1
                 wnpp_output = os.popen('wnpp-check %s' % self.debian_name)
                 wnpp_output = wnpp_output.read()
-        self.suite = "ITP"
-        self.status = "ITP"
         self.version = "NA"
         if wnpp_output == "":
             self.suite = "Unpackaged"
             self.status = "Unpackaged"
+        else:
+            pos1 = wnpp_output.index('#')
+            pos2 = wnpp_output.index(')')
+            if 'ITP' in wnpp_output:
+                self.suite = "ITP"
+                self.status = "ITP"
+            elif 'RFP' in wnpp_output:
+                self.suite = "RFP"
+                self.status = "RFP"
+            self.link = "https://bugs.debian.org/%s" % wnpp_output[pos1+1:pos2]
 
     def set_color(self):
         '''
@@ -192,7 +205,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.color = 'yellow'
         elif self.suite == 'NEW':
             self.color = 'blue'
-        elif self.suite == 'ITP':
+        elif self.suite == 'ITP' or self.suite == 'RFP':
             self.color = 'cyan'
         else:
             self.color = 'red'
@@ -211,7 +224,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             self.satisfied = True
             return
 
-        if gem_requirement == '':
+        if gem_requirement == '' and self.status == 'Packaged':
             self.satisfied = True
             return
         if debian_version == 'NA':
@@ -310,10 +323,13 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             print ": Found in cache",
             self.version = jsoncontent[self.name]['version']
             self.suite = jsoncontent[self.name]['suite']
+            self.link = jsoncontent[self.name]['link']
             if self.suite == 'Unpackaged':
                 self.status = "Unpackaged"
             elif self.suite == 'ITP':
                 self.status = "ITP"
+            elif self.suite == 'RFP':
+                self.status = "RFP"
             else:
                 self.status = "Packaged"
         else:
@@ -514,7 +530,7 @@ class Gemdeps:
             for dep in self.extended_dep_list:
                 if dep.name not in jsoncontent:
                     jsoncontent[dep.name] = {
-                        'version': dep.version, 'suite': dep.suite}
+                            'version': dep.version, 'suite': dep.suite, 'link': dep.link}
             currentpath = os.path.abspath(os.path.dirname(__file__))
             cacheout = open(os.path.join(currentpath, "cache"), "w")
             t = json.dumps(jsoncontent, indent=4)
