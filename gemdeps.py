@@ -7,6 +7,7 @@ import urllib2
 import sys
 import re
 import copy
+import logging
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -45,6 +46,7 @@ gem_exceptions = {'rake': 'rake',
                   "ruby-prof": "ruby-prof"}
 
 skip_version_check = ['bootstrap-sass', 'messagebus_ruby_api']
+logging.basicConfig(filename='gemdeps.log', level=logging.DEBUG)
 
 
 def get_operator(requirement):
@@ -481,36 +483,42 @@ class Gemdeps:
                     counter = 0
                     while True:
                         currentgem = self.dep_list[counter].name
-                        print "\t" + currentgem
-                        if "rails-assets" not in currentgem:
-                            urlfile = urllib2.urlopen(
-                                'https://rubygems.org/api/v1/gems/%s.json'
-                                % currentgem)
-                            jsondata = json.loads(urlfile.read())
-                            for dep in jsondata['dependencies']['runtime']:
-                                if dep['name'] not in [x.name
-                                                       for x in
-                                                       self.dep_list]:
-                                    n = gemparser.Dependency()
-                                    n.name = dep['name']
-                                    n.requirement = dep['requirements']
-                                    n.parent = currentgem
-                                    self.dep_list.append(n)
-                                else:
-                                    for x in self.dep_list:
-                                        if x.name == dep['name']:
-                                            n = x
-                                            break
-                                    operator, req1 = get_operator(
-                                        dep['requirements'])
-                                    operator, req2 = get_operator(
-                                        n.requirement)
-                                    if req1 > req2:
+                        try:
+                            print "\t" + currentgem
+                            if "rails-assets" not in currentgem:
+                                urlfile = urllib2.urlopen(
+                                    'https://rubygems.org/api/v1/gems/%s.json'
+                                    % currentgem)
+                                jsondata = json.loads(urlfile.read())
+                                for dep in jsondata['dependencies']['runtime']:
+                                    if dep['name'] not in [x.name
+                                                           for x in
+                                                           self.dep_list]:
+                                        n = gemparser.Dependency()
+                                        n.name = dep['name']
                                         n.requirement = dep['requirements']
-                            counter = counter + 1
-                            if counter >= len(self.dep_list):
-                                break
-                        else:
+                                        n.parent = currentgem
+                                        self.dep_list.append(n)
+                                    else:
+                                        for x in self.dep_list:
+                                            if x.name == dep['name']:
+                                                n = x
+                                                break
+                                        operator, req1 = get_operator(
+                                            dep['requirements'])
+                                        operator, req2 = get_operator(
+                                            n.requirement)
+                                        if req1 > req2:
+                                            n.requirement = dep['requirements']
+                                counter = counter + 1
+                                if counter >= len(self.dep_list):
+                                    break
+                            else:
+                                counter = counter + 1
+                                continue
+                        except Exception, e:
+                            logging.error("Unable to handle gem %s. \
+                                    The error was %s" % (currentgem, e))
                             counter = counter + 1
                             continue
                     deplistout = open(self.appname + '_deplist.json', 'w')
