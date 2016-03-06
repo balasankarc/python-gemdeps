@@ -194,7 +194,8 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             elif 'RFP' in wnpp_output:
                 self.suite = "RFP"
                 self.status = "RFP"
-            self.link = "https://bugs.debian.org/%s" % wnpp_output[pos1+1:pos2]
+            self.link = "https://bugs.debian.org/%s" % wnpp_output[
+                pos1 + 1:pos2]
 
     def set_color(self):
         '''
@@ -471,6 +472,7 @@ class Gemdeps:
             except:
                 print "Errors in cache file. Skipping it."
         if not self.extended_dep_list:
+            dotf = open('dotfile', 'w')
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
                     print "Fetching Dependencies"
@@ -491,19 +493,22 @@ class Gemdeps:
                                     % currentgem)
                                 jsondata = json.loads(urlfile.read())
                                 for dep in jsondata['dependencies']['runtime']:
+                                    strin = currentgem + "->" + dep['name'] + "\n"
+                                    dotf.write(strin)
                                     if dep['name'] not in [x.name
                                                            for x in
                                                            self.dep_list]:
                                         n = gemparser.Dependency()
                                         n.name = dep['name']
                                         n.requirement = dep['requirements']
-                                        n.parent = currentgem
+                                        n.parent.append(currentgem)
                                         self.dep_list.append(n)
                                     else:
                                         for x in self.dep_list:
                                             if x.name == dep['name']:
                                                 n = x
                                                 break
+                                        n.parent.append(currentgem)
                                         operator, req1 = get_operator(
                                             dep['requirements'])
                                         operator, req2 = get_operator(
@@ -525,6 +530,7 @@ class Gemdeps:
                     t = json.dumps([dep.__dict__ for dep in self.dep_list])
                     deplistout.write(str(t))
                     deplistout.close()
+            dotf.close()
             print "\n\nDebian Status"
             for dep in self.dep_list:
                 n = DetailedDependency(dep)
@@ -538,7 +544,7 @@ class Gemdeps:
             for dep in self.extended_dep_list:
                 if dep.name not in jsoncontent:
                     jsoncontent[dep.name] = {
-                            'version': dep.version, 'suite': dep.suite, 'link': dep.link}
+                        'version': dep.version, 'suite': dep.suite, 'link': dep.link}
             currentpath = os.path.abspath(os.path.dirname(__file__))
             cacheout = open(os.path.join(currentpath, "cache"), "w")
             t = json.dumps(jsoncontent, indent=4)
