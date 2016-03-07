@@ -472,7 +472,6 @@ class Gemdeps:
             except:
                 print "Errors in cache file. Skipping it."
         if not self.extended_dep_list:
-            dotf = open('dotfile', 'w')
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
                     print "Fetching Dependencies"
@@ -493,8 +492,6 @@ class Gemdeps:
                                     % currentgem)
                                 jsondata = json.loads(urlfile.read())
                                 for dep in jsondata['dependencies']['runtime']:
-                                    strin = currentgem + "->" + dep['name'] + "\n"
-                                    dotf.write(strin)
                                     if dep['name'] not in [x.name
                                                            for x in
                                                            self.dep_list]:
@@ -530,12 +527,20 @@ class Gemdeps:
                     t = json.dumps([dep.__dict__ for dep in self.dep_list])
                     deplistout.write(str(t))
                     deplistout.close()
-            dotf.close()
             print "\n\nDebian Status"
             for dep in self.dep_list:
                 n = DetailedDependency(dep)
                 n.debian_status(jsoncontent)
                 self.extended_dep_list.append(n)
+            dotf = open('%s.dot' % self.appname, 'w')
+            dotf.write('digraph %s\n{\n' % self.appname)
+            for dep in self.extended_dep_list:
+                block = '"%s"[color=%s];\n' % (dep.name, dep.color)
+                dotf.write(block)
+                for parent in dep.parent:
+                    dotf.write('"%s"->"%s";\n' % (parent, dep.name))
+            dotf.write("}")
+            dotf.close()
             jsonout = open(self.appname + '_debian_status.json', 'w')
             t = json.dumps([dep.__dict__
                             for dep in self.extended_dep_list], indent=4)
