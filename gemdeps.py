@@ -536,7 +536,6 @@ class Gemdeps:
                 n.debian_status(jsoncontent)
                 self.extended_dep_list[n.name] = n
             print self.extended_dep_list
-            raw_input("Continue")
             dotf = open('%s.dot' % self.appname, 'w')
             dotf.write('digraph %s\n{\n' % self.appname)
             for dep in self.extended_dep_list:
