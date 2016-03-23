@@ -369,7 +369,7 @@ class Gemdeps:
         Initialize necessary attributes.
         '''
         self.dep_list = []
-        self.extended_dep_list = []
+        self.extended_dep_list = {}
         self.appname = appname
 
     def dep_list_from_file(self, path):
@@ -399,7 +399,7 @@ class Gemdeps:
             dep = DetailedDependency()
             for key in item.keys():
                 setattr(dep, key, item[key])
-            self.extended_dep_list.append(dep)
+            self.extended_dep_list[dep.name] = dep
 
     def generate_html_csv(self):
         '''
@@ -412,7 +412,7 @@ class Gemdeps:
         itp_count = 0
         total = 0
         extended_dep_list = self.extended_dep_list
-        for n in self.extended_dep_list:
+        for dep, n in self.extended_dep_list.items():
             if n.status == 'Packaged' or n.status == 'NEW':
                 packaged_count += 1
             elif n.status == 'ITP':
@@ -432,7 +432,7 @@ class Gemdeps:
         if not path:
             pdfout = open(self.appname + ".dot", "w")
             pdfout.write('digraph graphname {\n')
-            for n in self.extended_dep_list:
+            for dep, n in self.extended_dep_list.items():
                 name = n.name.replace('-', '_').replace('.', '_')
                 parent_name = n.parent.replace('-', '_').replace('.', '_')
                 pdfout.write("\t" + name + "[color=" + n.color + "];\n")
@@ -478,6 +478,7 @@ class Gemdeps:
                     gemparser = gemfileparser.GemfileParser(path,
                                                             self.appname)
                     completedeps = gemparser.parse()
+                    print completedeps
                     self.dep_list = completedeps['runtime'] + \
                         completedeps['production'] + \
                         completedeps['metrics']
@@ -524,30 +525,39 @@ class Gemdeps:
                             counter = counter + 1
                             continue
                     deplistout = open(self.appname + '_deplist.json', 'w')
-                    t = json.dumps([dep.__dict__ for dep in self.dep_list])
+                    t = json.dumps([dep.__dict__ for dep in self.dep_list], indent=4)
                     deplistout.write(str(t))
                     deplistout.close()
+            print self.dep_list
             print "\n\nDebian Status"
             for dep in self.dep_list:
                 n = DetailedDependency(dep)
+                print n
                 n.debian_status(jsoncontent)
-                self.extended_dep_list.append(n)
+                self.extended_dep_list[n.name] = n
+            print self.extended_dep_list
+            raw_input("Continue")
             dotf = open('%s.dot' % self.appname, 'w')
             dotf.write('digraph %s\n{\n' % self.appname)
             for dep in self.extended_dep_list:
-                block = '"%s"[color=%s];\n' % (dep.name, dep.color)
+                name = self.extended_dep_list[dep].name
+                color = self.extended_dep_list[dep].color
+                block = '"%s"[color=%s];\n' % (name, color)
                 dotf.write(block)
-                for parent in dep.parent:
-                    dotf.write('"%s"->"%s";\n' % (parent, dep.name))
+                for parent in self.extended_dep_list[dep].parent:
+                    dotf.write('"%s"->"%s";\n' % (parent, self.extended_dep_list[dep].name))
             dotf.write("}")
             dotf.close()
             jsonout = open(self.appname + '_debian_status.json', 'w')
-            t = json.dumps([dep.__dict__
-                            for dep in self.extended_dep_list], indent=4)
+            output = {}
+            for dep in self.extended_dep_list:
+                output[self.extended_dep_list[dep].name] = self.extended_dep_list[dep].__dict__
+            print output
+            t = json.dumps(output, indent=4)
             jsonout.write(str(t))
             jsonout.close()
             for dep in self.extended_dep_list:
-                if dep.name not in jsoncontent:
+                if self.extended_dep_list[dep].name not in jsoncontent:
                     jsoncontent[dep.name] = {
                         'version': dep.version, 'suite': dep.suite, 'link': dep.link}
             currentpath = os.path.abspath(os.path.dirname(__file__))
