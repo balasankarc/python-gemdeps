@@ -401,48 +401,6 @@ class Gemdeps:
                 setattr(dep, key, item[key])
             self.extended_dep_list[dep.name] = dep
 
-    def generate_html_csv(self):
-        '''
-        Generate CSV file for generating HTML output.
-        '''
-        # TODO - Rewrite this to match with latest statusbar template
-        appname = self.appname
-        packaged_count = 0
-        unpackaged_count = 0
-        itp_count = 0
-        total = 0
-        extended_dep_list = self.extended_dep_list
-        for dep, n in self.extended_dep_list.items():
-            if n.status == 'Packaged' or n.status == 'NEW':
-                packaged_count += 1
-            elif n.status == 'ITP':
-                itp_count += 1
-            else:
-                unpackaged_count += 1
-        total = len(self.extended_dep_list)
-        percent_complete = (packaged_count * 100) / total
-        env = Environment(loader=FileSystemLoader('templates'))
-        template = env.get_template('main.html')
-        render = template.render(locals())
-        print "Generating HTML"
-        with open(self.appname + ".html", "w") as file:
-            file.write(render)
-
-    def generate_pdf_dot(self, path=''):
-        if not path:
-            pdfout = open(self.appname + ".dot", "w")
-            pdfout.write('digraph graphname {\n')
-            for dep, n in self.extended_dep_list.items():
-                name = n.name.replace('-', '_').replace('.', '_')
-                parent_name = n.parent.replace('-', '_').replace('.', '_')
-                pdfout.write("\t" + name + "[color=" + n.color + "];\n")
-                pdfout.write("\t" + parent_name + " -> " + name + " ;\n")
-            pdfout.write('}')
-            pdfout.close()
-            os.popen('dot -Tps ' + self.appname +
-                     '.dot -o ' + appname + '_dependency.pdf')
-        else:
-            os.popen('dot -Tps ' + path + ' -o ' + appname + '_dependency.pdf')
 
     def filetype(self, path):
         '''
@@ -455,6 +413,38 @@ class Gemdeps:
         else:
             print "Input filename should end with '.gemfile' or '.gemspec'"
             sys.exit(0)
+
+    def generate_output(self, jsoncontent):
+        dotf = open('%s.dot' % self.appname, 'w')
+        dotf.write('digraph %s\n{\n' % self.appname)
+        for dep in self.extended_dep_list:
+            name = self.extended_dep_list[dep].name
+            color = self.extended_dep_list[dep].color
+            block = '"%s"[color=%s];\n' % (name, color)
+            dotf.write(block)
+            for parent in self.extended_dep_list[dep].parent:
+                dotf.write('"%s"->"%s";\n' % (parent, self.extended_dep_list[dep].name))
+        dotf.write("}")
+        dotf.close()
+        jsonout = open(self.appname + '_debian_status.json', 'w')
+        output = {}
+        for dep in self.extended_dep_list:
+            output[self.extended_dep_list[dep].name] = self.extended_dep_list[dep].__dict__
+        print output
+        t = json.dumps(output, indent=4)
+        jsonout.write(str(t))
+        jsonout.close()
+        for item, dep in self.extended_dep_list.items():
+            if dep.name not in jsoncontent:
+                print "Dependency", dep
+                jsoncontent[dep.name] = {
+                    'version': dep.version, 'suite': dep.suite, 'link': dep.link}
+        currentpath = os.path.abspath(os.path.dirname(__file__))
+        cacheout = open(os.path.join(currentpath, "cache"), "w")
+        t = json.dumps(jsoncontent, indent=4)
+        cacheout.write(str(t))
+        cacheout.close()
+
 
     def get_deps(self, path):
         '''
@@ -528,7 +518,6 @@ class Gemdeps:
                     t = json.dumps([dep.__dict__ for dep in self.dep_list], indent=4)
                     deplistout.write(str(t))
                     deplistout.close()
-            print self.dep_list
             print "\n\nDebian Status"
             for dep in self.dep_list:
                 n = DetailedDependency(dep)
@@ -536,34 +525,7 @@ class Gemdeps:
                 n.debian_status(jsoncontent)
                 self.extended_dep_list[n.name] = n
             print self.extended_dep_list
-            dotf = open('%s.dot' % self.appname, 'w')
-            dotf.write('digraph %s\n{\n' % self.appname)
-            for dep in self.extended_dep_list:
-                name = self.extended_dep_list[dep].name
-                color = self.extended_dep_list[dep].color
-                block = '"%s"[color=%s];\n' % (name, color)
-                dotf.write(block)
-                for parent in self.extended_dep_list[dep].parent:
-                    dotf.write('"%s"->"%s";\n' % (parent, self.extended_dep_list[dep].name))
-            dotf.write("}")
-            dotf.close()
-            jsonout = open(self.appname + '_debian_status.json', 'w')
-            output = {}
-            for dep in self.extended_dep_list:
-                output[self.extended_dep_list[dep].name] = self.extended_dep_list[dep].__dict__
-            print output
-            t = json.dumps(output, indent=4)
-            jsonout.write(str(t))
-            jsonout.close()
-            for dep in self.extended_dep_list:
-                if self.extended_dep_list[dep].name not in jsoncontent:
-                    jsoncontent[dep.name] = {
-                        'version': dep.version, 'suite': dep.suite, 'link': dep.link}
-            currentpath = os.path.abspath(os.path.dirname(__file__))
-            cacheout = open(os.path.join(currentpath, "cache"), "w")
-            t = json.dumps(jsoncontent, indent=4)
-            cacheout.write(str(t))
-            cacheout.close()
+            self.generate_output(jsoncontent)
 
 
 if __name__ == '__main__':
