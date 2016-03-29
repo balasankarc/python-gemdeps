@@ -375,19 +375,23 @@ class Gemdeps:
             for key in item.keys():
                 setattr(dep, key, item[key])
             self.dep_list.append(dep)
+        cachecontent = self.get_cache_content()
+        self.generate_extended_list(cachecontent)
 
     def deb_status_list_from_file(self, path):
         '''
-        Generate extended_dep_list from _deplist.json file given as input.
+        Generate extended_dep_list from _debian_status.json file given as input.
         '''
         f = open(path)
         content = f.read()
         jsoncontent = json.loads(content)
-        for item in jsoncontent:
+        for dependency, item in jsoncontent.items():
             dep = DetailedDependency()
             for key in item.keys():
                 setattr(dep, key, item[key])
             self.extended_dep_list[dep.name] = dep
+        cachecontent = self.get_cache_content()
+        self.generate_output(cachecontent)
 
 
     def filetype(self, path):
@@ -402,40 +406,7 @@ class Gemdeps:
             print "Input filename should end with '.gemfile' or '.gemspec'"
             sys.exit(0)
 
-    def generate_output(self, jsoncontent):
-        dotf = open('%s.dot' % self.appname, 'w')
-        dotf.write('digraph %s\n{\n' % self.appname)
-        for dep in self.extended_dep_list:
-            name = self.extended_dep_list[dep].name
-            color = self.extended_dep_list[dep].color
-            block = '"%s"[color=%s];\n' % (name, color)
-            dotf.write(block)
-            for parent in self.extended_dep_list[dep].parent:
-                dotf.write('"%s"->"%s";\n' % (parent, self.extended_dep_list[dep].name))
-        dotf.write("}")
-        dotf.close()
-        jsonout = open(self.appname + '_debian_status.json', 'w')
-        output = {}
-        for dep in self.extended_dep_list:
-            output[self.extended_dep_list[dep].name] = self.extended_dep_list[dep].__dict__
-        t = json.dumps(output, indent=4)
-        jsonout.write(str(t))
-        jsonout.close()
-        for item, dep in self.extended_dep_list.items():
-            if dep.name not in jsoncontent:
-                jsoncontent[dep.name] = {
-                    'version': dep.version, 'suite': dep.suite, 'link': dep.link}
-        currentpath = os.path.abspath(os.path.dirname(__file__))
-        cacheout = open("/tmp/gemdeps_cache", "w")
-        t = json.dumps(jsoncontent, indent=4)
-        cacheout.write(str(t))
-        cacheout.close()
-
-
-    def get_deps(self, path):
-        '''
-        Main method to get the dependencies of the gems.
-        '''
+    def get_cache_content(self):
         jsoncontent = {}
         currentpath = os.path.abspath(os.path.dirname(__file__))
         if os.path.isfile("/tmp/gemdeps_cache"):
@@ -447,6 +418,14 @@ class Gemdeps:
                 jsoncontent = json.loads(content)
             except:
                 print "Errors in cache file. Skipping it."
+        return jsoncontent
+
+
+    def get_deps(self, path):
+        '''
+        Main method to get the dependencies of the gems.
+        '''
+        jsoncontent = self.get_cache_content()
         if not self.extended_dep_list:
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
@@ -503,13 +482,47 @@ class Gemdeps:
                     t = json.dumps([dep.__dict__ for dep in self.dep_list], indent=4)
                     deplistout.write(str(t))
                     deplistout.close()
-            print "\n\nIdentifying Debian Status \n\n"
-            for dep in self.dep_list:
-                n = DetailedDependency(dep)
-                print "Debian Status | " + self.appname + " | "  + n.name
-                n.debian_status(jsoncontent)
-                self.extended_dep_list[n.name] = n
-            self.generate_output(jsoncontent)
+            self.generate_extended_list(jsoncontent)
+
+
+    def generate_extended_list(self, jsoncontent):
+        print "\n\nIdentifying Debian Status \n\n"
+        for dep in self.dep_list:
+            n = DetailedDependency(dep)
+            print "Debian Status | " + self.appname + " | "  + n.name
+            n.debian_status(jsoncontent)
+            self.extended_dep_list[n.name] = n
+        self.generate_output(jsoncontent)
+
+
+    def generate_output(self, jsoncontent):
+        dotf = open('%s.dot' % self.appname, 'w')
+        dotf.write('digraph %s\n{\n' % self.appname)
+        for dep in self.extended_dep_list:
+            name = self.extended_dep_list[dep].name
+            color = self.extended_dep_list[dep].color
+            block = '"%s"[color=%s];\n' % (name, color)
+            dotf.write(block)
+            for parent in self.extended_dep_list[dep].parent:
+                dotf.write('"%s"->"%s";\n' % (parent, self.extended_dep_list[dep].name))
+        dotf.write("}")
+        dotf.close()
+        jsonout = open(self.appname + '_debian_status.json', 'w')
+        output = {}
+        for dep in self.extended_dep_list:
+            output[self.extended_dep_list[dep].name] = self.extended_dep_list[dep].__dict__
+        t = json.dumps(output, indent=4)
+        jsonout.write(str(t))
+        jsonout.close()
+        for item, dep in self.extended_dep_list.items():
+            if dep.name not in jsoncontent:
+                jsoncontent[dep.name] = {
+                    'version': dep.version, 'suite': dep.suite, 'link': dep.link}
+        currentpath = os.path.abspath(os.path.dirname(__file__))
+        cacheout = open("/tmp/gemdeps_cache", "w")
+        t = json.dumps(jsoncontent, indent=4)
+        cacheout.write(str(t))
+        cacheout.close()
 
 
 if __name__ == '__main__':
