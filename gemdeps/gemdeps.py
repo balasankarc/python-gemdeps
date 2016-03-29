@@ -288,31 +288,24 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
             elif check == '~>':
                 deb_ver_int = debian_version.version
                 ver_int = ver.version
-                # print deb_ver_int, ver_int
                 n = min(len(deb_ver_int), len(ver_int)) - 1
-                # print n
                 partcount = 0
                 while partcount < n:
-                    # print deb_ver_int[partcount], ver_int[partcount]
                     if deb_ver_int[partcount] != ver_int[partcount]:
                         status = False
                         break
                     partcount += 1
                 if partcount < len(deb_ver_int):
-                    # print deb_ver_int[partcount], ver_int[partcount]
                     try:
                         intdebver = deb_ver_int[partcount]
                         intver = ver_int[partcount]
                         if intdebver < intver:
                             status = False
-                            # print "False 2"
                     except:
                         if deb_ver_int[partcount] < ver_int[partcount]:
                             status = False
-                            # print "False 2"
                 else:
                     status = False
-                    # print "False 3"
                 if status is False:
                     break
         self.satisfied = status
@@ -321,9 +314,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
         '''
         Calls necessary functions to set the packaging status.
         '''
-        print "\t" + self.name,
         if self.name in jsoncontent:
-            print ": Found in cache",
             self.version = jsoncontent[self.name]['version']
             self.suite = jsoncontent[self.name]['suite']
             self.link = jsoncontent[self.name]['link']
@@ -356,7 +347,6 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
                 self.suite = tmp.suite
                 self.satisfied = tmp.satisfied
         self.set_color()
-        print self.version, self.suite, self.status
 
 
 class Gemdeps:
@@ -381,7 +371,6 @@ class Gemdeps:
         content = f.read()
         jsoncontent = json.loads(content)
         for item in jsoncontent:
-            print "\t" + item['name']
             dep = gemfileparser.GemfileParser.Dependency()
             for key in item.keys():
                 setattr(dep, key, item[key])
@@ -395,7 +384,6 @@ class Gemdeps:
         content = f.read()
         jsoncontent = json.loads(content)
         for item in jsoncontent:
-            print item['name']
             dep = DetailedDependency()
             for key in item.keys():
                 setattr(dep, key, item[key])
@@ -430,17 +418,15 @@ class Gemdeps:
         output = {}
         for dep in self.extended_dep_list:
             output[self.extended_dep_list[dep].name] = self.extended_dep_list[dep].__dict__
-        print output
         t = json.dumps(output, indent=4)
         jsonout.write(str(t))
         jsonout.close()
         for item, dep in self.extended_dep_list.items():
             if dep.name not in jsoncontent:
-                print "Dependency", dep
                 jsoncontent[dep.name] = {
                     'version': dep.version, 'suite': dep.suite, 'link': dep.link}
         currentpath = os.path.abspath(os.path.dirname(__file__))
-        cacheout = open(os.path.join(currentpath, "cache"), "w")
+        cacheout = open("/tmp/gemdeps_cache", "w")
         t = json.dumps(jsoncontent, indent=4)
         cacheout.write(str(t))
         cacheout.close()
@@ -452,10 +438,10 @@ class Gemdeps:
         '''
         jsoncontent = {}
         currentpath = os.path.abspath(os.path.dirname(__file__))
-        if os.path.isfile(os.path.join(currentpath, "cache")):
+        if os.path.isfile("/tmp/gemdeps_cache"):
             print "Global Debian Info Cache found. Trying to read it."
             try:
-                contentfile = open(os.path.join(currentpath, "cache"))
+                contentfile = open("/tmp/gemdeps_cache")
                 content = contentfile.read()
                 contentfile.close()
                 jsoncontent = json.loads(content)
@@ -464,19 +450,18 @@ class Gemdeps:
         if not self.extended_dep_list:
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
-                    print "Fetching Dependencies"
+                    print "\n\nFetching Dependencies \n\n"
                     gemparser = gemfileparser.GemfileParser(path,
                                                             self.appname)
                     completedeps = gemparser.parse()
-                    print completedeps
                     self.dep_list = completedeps['runtime'] + \
                         completedeps['production'] + \
                         completedeps['metrics']
                     counter = 0
                     while True:
                         currentgem = self.dep_list[counter].name
+                        print "Fetching Dependencies | " + self.appname + " | " + currentgem
                         try:
-                            print "\t" + currentgem
                             if "rails-assets" not in currentgem:
                                 urlfile = urllib2.urlopen(
                                     'https://rubygems.org/api/v1/gems/%s.json'
@@ -518,13 +503,12 @@ class Gemdeps:
                     t = json.dumps([dep.__dict__ for dep in self.dep_list], indent=4)
                     deplistout.write(str(t))
                     deplistout.close()
-            print "\n\nDebian Status"
+            print "\n\nIdentifying Debian Status \n\n"
             for dep in self.dep_list:
                 n = DetailedDependency(dep)
-                print n
+                print "Debian Status | " + self.appname + " | "  + n.name
                 n.debian_status(jsoncontent)
                 self.extended_dep_list[n.name] = n
-            print self.extended_dep_list
             self.generate_output(jsoncontent)
 
 
@@ -552,7 +536,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     appname = args.appname
     gemdeps = Gemdeps(appname)
-    print appname
     if args.deplist:
         gemdeps.dep_list_from_file(args.deplist)
         path = ''
