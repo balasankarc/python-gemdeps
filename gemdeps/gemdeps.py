@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 
 import argparse
-import json
-import os
-import urllib2
-import sys
-import re
 import copy
+import json
 import logging
-
-from jinja2 import Environment, FileSystemLoader
+import os
+import re
+import sys
+import urllib2
+from distutils.version import LooseVersion
 
 from gemfileparser import gemfileparser
-
-from distutils.version import LooseVersion
 
 gem_exceptions = {'rake': 'rake',
                   'rubyntlm': 'ruby-ntlm',
@@ -368,7 +365,6 @@ class Gemdeps:
         '''
         Generate dep_list from _deplist.json file given as input.
         '''
-        print "Fetching Dependencies"
         f = open(path)
         content = f.read()
         jsoncontent = json.loads(content)
@@ -382,7 +378,7 @@ class Gemdeps:
 
     def deb_status_list_from_file(self, path):
         '''
-        Generate extended_dep_list from _debian_status.json file given as input.
+        Generate extended_dep_list from _debian_status.json file.
         '''
         f = open(path)
         content = f.read()
@@ -404,21 +400,20 @@ class Gemdeps:
         elif path.lower().endswith('gemspec'):
             return 'gemspec'
         else:
-            print "Input filename should end with '.gemfile' or '.gemspec'"
+            print("Input filename should end with '.gemfile' or '.gemspec'")
             sys.exit(0)
 
     def get_cache_content(self):
         jsoncontent = {}
-        currentpath = os.path.abspath(os.path.dirname(__file__))
         if os.path.isfile("/tmp/gemdeps_cache"):
-            print "Global Debian Info Cache found. Trying to read it."
+            print("Global Debian Info Cache found. Trying to read it.")
             try:
                 contentfile = open("/tmp/gemdeps_cache")
                 content = contentfile.read()
                 contentfile.close()
                 jsoncontent = json.loads(content)
             except:
-                print "Errors in cache file. Skipping it."
+                print("Errors in cache file. Skipping it.")
         return jsoncontent
 
     def get_deps(self, path):
@@ -429,7 +424,7 @@ class Gemdeps:
         if not self.extended_dep_list:
             if not self.dep_list:
                 if self.filetype(path) == 'gemfile':
-                    print "\n\nFetching Dependencies \n\n"
+                    print("\n\nFetching Dependencies \n\n")
                     gemparser = gemfileparser.GemfileParser(path,
                                                             self.appname)
                     completedeps = gemparser.parse()
@@ -439,7 +434,8 @@ class Gemdeps:
                     counter = 0
                     while True:
                         currentgem = self.dep_list[counter].name
-                        print "Fetching Dependencies | " + self.appname + " | " + currentgem
+                        print("Fetching Dependencies | " + self.appname +
+                              " | " + currentgem)
                         try:
                             if "rails-assets" not in currentgem:
                                 urlfile = urllib2.urlopen(
@@ -473,7 +469,7 @@ class Gemdeps:
                             else:
                                 counter = counter + 1
                                 continue
-                        except Exception, e:
+                        except Exception as e:
                             logging.error("Unable to handle gem %s. \
                                     The error was %s" % (currentgem, e))
                             counter = counter + 1
@@ -486,10 +482,10 @@ class Gemdeps:
             self.generate_extended_list(jsoncontent)
 
     def generate_extended_list(self, jsoncontent):
-        print "\n\nIdentifying Debian Status \n\n"
+        print("\n\nIdentifying Debian Status \n\n")
         for dep in self.dep_list:
             n = DetailedDependency(dep)
-            print "Debian Status | " + self.appname + " | " + n.name
+            print("Debian Status | " + self.appname + " | " + n.name)
             n.debian_status(jsoncontent)
             self.extended_dep_list[n.name] = n
         self.generate_output(jsoncontent)
@@ -517,9 +513,10 @@ class Gemdeps:
         jsonout.close()
         for item, dep in self.extended_dep_list.items():
             if dep.name not in jsoncontent:
-                jsoncontent[dep.name] = {
-                    'version': dep.version, 'suite': dep.suite, 'link': dep.link}
-        currentpath = os.path.abspath(os.path.dirname(__file__))
+                jsoncontent[dep.name] = {'version': dep.version,
+                                         'suite': dep.suite,
+                                         'link': dep.link
+                                         }
         cacheout = open("/tmp/gemdeps_cache", "w")
         t = json.dumps(jsoncontent, indent=4)
         cacheout.write(str(t))
