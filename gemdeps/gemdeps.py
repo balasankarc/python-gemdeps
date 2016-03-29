@@ -63,6 +63,7 @@ def get_operator(requirement):
 
 
 class DetailedDependency(gemfileparser.GemfileParser.Dependency):
+
     '''Debian specific details of each gem'''
 
     def get_debian_name(self):
@@ -350,6 +351,7 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
 
 
 class Gemdeps:
+
     '''
     Main class to run the program.
     '''
@@ -393,7 +395,6 @@ class Gemdeps:
         cachecontent = self.get_cache_content()
         self.generate_output(cachecontent)
 
-
     def filetype(self, path):
         '''
         Return if file is a Gemfile or a gemspec file.
@@ -419,7 +420,6 @@ class Gemdeps:
             except:
                 print "Errors in cache file. Skipping it."
         return jsoncontent
-
 
     def get_deps(self, path):
         '''
@@ -479,21 +479,20 @@ class Gemdeps:
                             counter = counter + 1
                             continue
                     deplistout = open(self.appname + '_deplist.json', 'w')
-                    t = json.dumps([dep.__dict__ for dep in self.dep_list], indent=4)
+                    t = json.dumps(
+                        [dep.__dict__ for dep in self.dep_list], indent=4)
                     deplistout.write(str(t))
                     deplistout.close()
             self.generate_extended_list(jsoncontent)
-
 
     def generate_extended_list(self, jsoncontent):
         print "\n\nIdentifying Debian Status \n\n"
         for dep in self.dep_list:
             n = DetailedDependency(dep)
-            print "Debian Status | " + self.appname + " | "  + n.name
+            print "Debian Status | " + self.appname + " | " + n.name
             n.debian_status(jsoncontent)
             self.extended_dep_list[n.name] = n
         self.generate_output(jsoncontent)
-
 
     def generate_output(self, jsoncontent):
         dotf = open('%s.dot' % self.appname, 'w')
@@ -504,13 +503,15 @@ class Gemdeps:
             block = '"%s"[color=%s];\n' % (name, color)
             dotf.write(block)
             for parent in self.extended_dep_list[dep].parent:
-                dotf.write('"%s"->"%s";\n' % (parent, self.extended_dep_list[dep].name))
+                dotf.write('"%s"->"%s";\n' %
+                           (parent, self.extended_dep_list[dep].name))
         dotf.write("}")
         dotf.close()
         jsonout = open(self.appname + '_debian_status.json', 'w')
         output = {}
         for dep in self.extended_dep_list:
-            output[self.extended_dep_list[dep].name] = self.extended_dep_list[dep].__dict__
+            output[self.extended_dep_list[dep]
+                   .name] = self.extended_dep_list[dep].__dict__
         t = json.dumps(output, indent=4)
         jsonout.write(str(t))
         jsonout.close()
