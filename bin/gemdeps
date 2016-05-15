@@ -4,8 +4,15 @@ import os
 import sys
 import argparse
 
-if os.path.isdir(os.path.abspath(os.path.join(os.path.abspath(__file__), '../../', 'gemdeps'))):
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.abspath(__file__), '../../', 'gemdeps')))
+if os.path.isdir(os.path.abspath(os.path.join(
+        os.path.abspath(__file__), '../../', 'gemdeps'))):
+    sys.path.insert(
+        0,
+        os.path.abspath(
+            os.path.join(
+                os.path.abspath(__file__),
+                '../../',
+                'gemdeps')))
 try:
     from gemdeps import Gemdeps
 except:
