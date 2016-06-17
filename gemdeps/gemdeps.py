@@ -47,7 +47,9 @@ logging.basicConfig(filename='gemdeps.log', level=logging.DEBUG)
 
 
 def get_operator(requirement):
-    ''' Splits the operator and version from a requirement string'''
+    '''
+    Splits the operator and version from a requirement string.
+    '''
     if requirement == '':
         return '>=', '0'
     m = re.search("\d", requirement)
@@ -60,9 +62,9 @@ def get_operator(requirement):
 
 
 class DetailedDependency(gemfileparser.GemfileParser.Dependency):
-
-    '''Debian specific details of each gem'''
-
+    '''
+    Debian specific details of each gem.
+    '''
     def get_debian_name(self):
         if self.name in gem_exceptions:
             return gem_exceptions[self.name]
@@ -348,7 +350,6 @@ class DetailedDependency(gemfileparser.GemfileParser.Dependency):
 
 
 class Gemdeps:
-
     '''
     Main class to run the program.
     '''
