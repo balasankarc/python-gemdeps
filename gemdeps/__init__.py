@@ -4,11 +4,15 @@ import copy
 import json
 import os
 from distutils.version import LooseVersion
-from urllib.request import urlopen
 
 from gemfileparser import GemfileParser
 
-from util import *
+from .util import *
+
+try:
+    from urllib.request import urlopen
+except:
+    from urllib2 import urlopen
 
 
 class DetailedDependency(object):
@@ -298,7 +302,7 @@ class GemDeps(object):
         while True:
             try:
                 current_gem = DetailedDependency(self.original_list[counter])
-                print("Current Gem: ", current_gem.name)
+                print("Current Gem: %s" % current_gem.name)
                 current_gem.debian_status()
                 self.dependency_list[current_gem.name] = current_gem
                 if current_gem.satisfied:
@@ -331,7 +335,7 @@ class GemDeps(object):
         '''
         Return dependencies of a gem.
         '''
-        print("Getting Dependencies of", gem.name)
+        print("Getting Dependencies of %s" % gem.name)
         api_url = 'https://rubygems.org/api/v1/dependencies.json'
         parameters = 'gems=%s' % gem.name
         fetch_url = api_url + '?' + parameters
@@ -386,9 +390,3 @@ class GemDeps(object):
                            (parent, self.dependency_list[dep].name))
         dotf.write("}")
         dotf.close()
-
-if __name__ == "__main__":
-    obj = GemDeps('gitlab')
-    obj.process('Gemfile')
-    obj.write_output()
-    obj.generate_dot()
