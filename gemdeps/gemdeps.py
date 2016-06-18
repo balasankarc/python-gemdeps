@@ -320,13 +320,15 @@ class GemDeps(object):
                 break
 
     def get_dependencies(self, gem):
+        '''
+        Return dependencies of a gem.
+        '''
         print("Getting Dependencies of", gem.name)
         api_url = 'https://rubygems.org/api/v1/dependencies.json'
         parameters = 'gems=%s' % gem.name
         fetch_url = api_url + '?' + parameters
         a = urlopen(url=fetch_url)
         serialized = json.loads(a.read().decode('utf-8'))
-        # latest_gem = serialized[-1]
         latest_gem = self.smallest_satisfiable(serialized, gem)
         dependency_list = []
         for dependency in latest_gem['dependencies']:
@@ -337,18 +339,23 @@ class GemDeps(object):
         return dependency_list
 
     def smallest_satisfiable(self, serialized, gem):
-        print(gem.name, gem.requirement)
+        '''
+        Get smallest version of gem that satisfies the requirement.
+        '''
         version_list = {}
         version_gem_list = []
         for gem_version in serialized:
             version_list[gem_version['number']] = gem_version
             version_gem_list.append(gem_version['number'])
         least = least_satisfiable_version(gem.requirement, version_gem_list)
-        print("Selected Version")
-        print(version_list[least]['name'], version_list[least]['number'])
+        print("Gem name: %s, Requirement: %s, Selected Version: %s" %
+              (gem.name, gem.requirement, least))
         return version_list[least]
 
     def write_output(self):
+        '''
+        Generate output in JSON format to generate statusbar.
+        '''
         new_list = {}
         for dep in self.dependency_list:
             new_list[dep] = self.dependency_list[dep].__dict__
@@ -356,6 +363,9 @@ class GemDeps(object):
             f.write(json.dumps(new_list, indent=4))
 
     def generate_dot(self):
+        '''
+        Generate output in dot format to generate graphs.
+        '''
         dotf = open('%s.dot' % self.appname, 'w')
         dotf.write('digraph %s\n{\n' % self.appname)
         for dep in self.dependency_list:

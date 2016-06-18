@@ -154,6 +154,9 @@ def version_satisfy_requirement(requirement, input_version):
 
 
 def least_satisfiable_version(requirement, version_list):
+    '''
+    Returns the smallest version that satisfies requirement.
+    '''
     satisfied_list = []
     for version in version_list:
         if version_satisfy_requirement(requirement, version):
