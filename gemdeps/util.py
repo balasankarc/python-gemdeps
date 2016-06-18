@@ -151,3 +151,11 @@ def version_satisfy_requirement(requirement, input_version):
         else:
             status = False
     return status
+
+
+def least_satisfiable_version(requirement, version_list):
+    satisfied_list = []
+    for version in version_list:
+        if version_satisfy_requirement(requirement, version):
+            satisfied_list.append(LooseVersion(str(version)))
+    return str(min(satisfied_list))

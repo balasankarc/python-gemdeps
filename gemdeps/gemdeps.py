@@ -326,7 +326,8 @@ class GemDeps(object):
         fetch_url = api_url + '?' + parameters
         a = urlopen(url=fetch_url)
         serialized = json.loads(a.read().decode('utf-8'))
-        latest_gem = serialized[-1]
+        # latest_gem = serialized[-1]
+        latest_gem = self.smallest_satisfiable(serialized, gem)
         dependency_list = []
         for dependency in latest_gem['dependencies']:
             n = GemfileParser.Dependency()
@@ -334,6 +335,18 @@ class GemDeps(object):
             n.requirement = dependency[1]
             dependency_list.append(n)
         return dependency_list
+
+    def smallest_satisfiable(self, serialized, gem):
+        print(gem.name, gem.requirement)
+        version_list = {}
+        version_gem_list = []
+        for gem_version in serialized:
+            version_list[gem_version['number']] = gem_version
+            version_gem_list.append(gem_version['number'])
+        least = least_satisfiable_version(gem.requirement, version_gem_list)
+        print("Selected Version")
+        print(version_list[least]['name'], version_list[least]['number'])
+        return version_list[least]
 
     def write_output(self):
         new_list = {}
