@@ -35,7 +35,9 @@ GEM_EXCEPTIONS = {'rake': 'rake',
                   "ruby-beautify": "ruby-beautify",
                   "ruby-prof": "ruby-prof"}
 
-SKIP_VERSION_CHECK = ['bootstrap-sass', 'messagebus_ruby_api']
+SKIP_VERSION_CHECK = ['bootstrap-sass',
+                      'messagebus_ruby_api',
+                      'gitlab_omniauth-ldap']
 
 
 def get_operator(requirement):
