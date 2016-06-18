@@ -4,44 +4,20 @@ import os
 import sys
 import argparse
 
-if os.path.isdir(os.path.abspath(os.path.join(
-        os.path.abspath(__file__), '../../', 'gemdeps'))):
-    sys.path.insert(
-        0,
-        os.path.abspath(
-            os.path.join(
-                os.path.abspath(__file__),
-                '../../',
-                'gemdeps')))
-try:
-    from gemdeps import Gemdeps
-except:
-    from gemdeps.gemdeps import Gemdeps
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, '../../')))
+
+import gemdeps
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Get application dependency status')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--deplistfile", dest="deplist",
-                       help="Provide deplist.json as input\
-                               (Skip fetching dependencies)")
-    group.add_argument("--debstatusfile", dest="debian_status",
-                       help="Provide debian_status.json as input \
-                               (Skip checking Debian status)")
-    group.add_argument("--dotfile", dest="dotfile",
-                       help="Provide dot file to generate pdf")
-    group.add_argument("--inputfile", dest="input_file",
-                       help="Input path of gemfile or gemspec")
+        description="Get dependency packaging information of a Ruby (on Rails)\
+        app.")
+    parser.add_argument("input_file", help="Input File")
     parser.add_argument("appname", help="Name of the application")
     args = parser.parse_args()
+    path = os.path.abspath(args.input_file)
     appname = args.appname
-    gemdeps = Gemdeps(appname)
-    if args.deplist:
-        gemdeps.dep_list_from_file(args.deplist)
-        path = ''
-        gemdeps.get_deps(path)
-    elif args.debian_status:
-        gemdeps.deb_status_list_from_file(args.debian_status)
-    elif args.input_file:
-        path = os.path.abspath(args.input_file)
-        gemdeps.get_deps(path)
+    obj = gemdeps.GemDeps(appname)
+    obj.process(path)
+    obj.write_output()
+    obj.generate_dot()
