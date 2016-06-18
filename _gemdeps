@@ -1,4 +1,0 @@
-#compdef gemdeps
-
-local -a options arguments 
-_arguments '--help[Show Help]' '--inputfile[Path to Gemfile/gemspec file]' '--deplistfile[Path to deplist.json]' '--debstatusfile[Path to debian_status.json]'
