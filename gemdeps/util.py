@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import re
+from distutils.version import LooseVersion
+
+
 GEM_EXCEPTIONS = {'rake': 'rake',
                   'rubyntlm': 'ruby-ntlm',
                   'rails': 'rails',
@@ -105,3 +108,46 @@ def get_stricter(requirement1, requirement2):
             return result
         elif check2 == '<' or check2 == '<=':
             return requirement1
+
+
+def version_satisfy_requirement(requirement, input_version):
+    '''
+    Returns if input_version satisfies requirement.
+    '''
+    check, ver = get_operator(requirement)
+    input_version = LooseVersion(str(input_version))
+    ver = LooseVersion(str(ver))
+    status = False
+    if check == '=' and input_version == ver:
+        status = True
+    elif check == '<=' and input_version <= ver:
+        status = True
+    elif check == '<' and input_version < ver:
+        status = True
+    elif check == '>' and input_version > ver:
+        status = True
+    elif check == '>=' and input_version >= ver:
+        status = True
+    elif check == '~>':
+        status = True
+        input_version_int = input_version.version
+        ver_int = ver.version
+        n = min(len(input_version_int), len(ver_int)) - 1
+        partcount = 0
+        while partcount < n:
+            if input_version_int[partcount] != ver_int[partcount]:
+                status = False
+                break
+            partcount += 1
+        if partcount < len(input_version_int):
+            try:
+                intdebver = input_version_int[partcount]
+                intver = ver_int[partcount]
+                if intdebver < intver:
+                    status = False
+            except:
+                if input_version_int[partcount] < ver_int[partcount]:
+                    status = False
+        else:
+            status = False
+    return status

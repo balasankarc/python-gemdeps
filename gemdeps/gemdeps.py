@@ -214,62 +214,9 @@ class DetailedDependency(object):
         # Perform comparison
         status = True
         for req in requirement:
-            check, ver = get_operator(req)
-            debian_version = LooseVersion(str(debian_version))
-            ver = LooseVersion(str(ver))
-            if check == '=':
-                if debian_version == ver:
-                    status = True
-                else:
-                    status = False
-                    break
-            elif check == '<=':
-                if debian_version <= ver:
-                    status = True
-                else:
-                    status = False
-                    break
-            elif check == '<':
-                if debian_version < ver:
-                    status = True
-                else:
-                    status = False
-                    break
-            elif check == '>':
-                if debian_version > ver:
-                    status = True
-                else:
-                    status = False
-                    break
-            elif check == '>=':
-                if debian_version >= ver:
-                    status = True
-                else:
-                    status = False
-                    break
-            elif check == '~>':
-                deb_ver_int = debian_version.version
-                ver_int = ver.version
-                n = min(len(deb_ver_int), len(ver_int)) - 1
-                partcount = 0
-                while partcount < n:
-                    if deb_ver_int[partcount] != ver_int[partcount]:
-                        status = False
-                        break
-                    partcount += 1
-                if partcount < len(deb_ver_int):
-                    try:
-                        intdebver = deb_ver_int[partcount]
-                        intver = ver_int[partcount]
-                        if intdebver < intver:
-                            status = False
-                    except:
-                        if deb_ver_int[partcount] < ver_int[partcount]:
-                            status = False
-                else:
-                    status = False
-                if status is False:
-                    break
+            status = version_satisfy_requirement(req, debian_version)
+            if status is False:
+                break
         self.satisfied = status
 
     def debian_status(self, jsoncontent={}):
