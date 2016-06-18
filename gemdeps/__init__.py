@@ -303,6 +303,10 @@ class GemDeps(object):
             try:
                 current_gem = DetailedDependency(self.original_list[counter])
                 print("Current Gem: %s" % current_gem.name)
+                if "rails-assets" in current_gem.name:
+                    print("\tRails Assets Found. Skipping")
+                    counter = counter + 1
+                    continue
                 current_gem.debian_status()
                 self.dependency_list[current_gem.name] = current_gem
                 if current_gem.satisfied:
