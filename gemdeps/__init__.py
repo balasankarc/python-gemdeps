@@ -3,11 +3,11 @@
 import copy
 import json
 import os
-from distutils.version import LooseVersion
 
 from gemfileparser import GemfileParser
 
-from .util import *
+from .util import (GEM_EXCEPTIONS, SKIP_VERSION_CHECK, get_stricter,
+                   least_satisfiable_version, version_satisfy_requirement)
 
 try:
     from urllib.request import urlopen
