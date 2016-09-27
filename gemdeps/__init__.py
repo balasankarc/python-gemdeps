@@ -268,13 +268,14 @@ class GemDeps(object):
     Main Class to generate dependency list of a Ruby (on Rails) app.
     '''
 
-    def __init__(self, appname):
+    def __init__(self, appname, ignoresatisfied=True):
         '''
         Initialize necessary attributes.
         '''
         self.appname = appname
         self.original_list = []
         self.dependency_list = {}
+        self.ignoresatisfied = ignoresatisfied
 
     def process(self, path):
         '''
@@ -286,7 +287,8 @@ class GemDeps(object):
          3. For each dependency in dependency_list, "dep"
 
             a. Find out packaging status of "dep"
-            b. If "dep" is satisfied in Debian, continue to next "dep"
+            b. If "dep" is satisfied in Debian and their dependencies are set
+               to be ignored, continue to next "dep"
             c. Else
 
                i. Get the runtime dependencies of "dep" from Rubygems API
@@ -309,7 +311,7 @@ class GemDeps(object):
                     continue
                 current_gem.debian_status()
                 self.dependency_list[current_gem.name] = current_gem
-                if current_gem.satisfied:
+                if current_gem.satisfied and self.ignoresatisfied:
                     print("%s is satisfied in %s" % (current_gem.name,
                                                      current_gem.suite))
                 else:
