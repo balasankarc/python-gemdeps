@@ -368,21 +368,30 @@ class GemDeps(object):
               (gem.name, gem.requirement, least))
         return version_list[least]
 
-    def write_output(self):
+    def write_output(self, path=None):
         '''
         Generate output in JSON format to generate statusbar.
         '''
+        if path:
+            out_path = os.path.join(path, 'debian_status.json')
+        else:
+            out_path = 'debian_status.json'
         new_list = {}
         for dep in self.dependency_list:
             new_list[dep] = self.dependency_list[dep].__dict__
-        with open(self.appname + "_debian_status.json", "w") as f:
+        with open(out_path, "w") as f:
             f.write(json.dumps(new_list, indent=4))
 
-    def generate_dot(self):
+    def generate_dot(self, path=None):
         '''
         Generate output in dot format to generate graphs.
         '''
-        dotf = open('%s.dot' % self.appname, 'w')
+        if path:
+            out_path = os.path.join(path, 'graph.dot')
+        else:
+            out_path = 'graph.dot'
+
+        dotf = open(out_path, 'w')
         dotf.write('digraph %s\n{\n' % self.appname)
         for dep in self.dependency_list:
             name = dep
