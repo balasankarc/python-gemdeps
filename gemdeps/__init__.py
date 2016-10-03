@@ -194,7 +194,7 @@ class DetailedDependency(object):
             self.satisfied = True
             return
 
-        if gem_requirement == '' and self.status == 'Packaged':
+        if gem_requirement == [] and self.status == 'Packaged':
             self.satisfied = True
             return
         if debian_version == 'NA':
@@ -213,15 +213,12 @@ class DetailedDependency(object):
             debian_version = debian_version[:debian_version.index('+')]
 
         # Cleaning up version requirement in gem
-        requirement = gem_requirement.split(',')
-        requirement = [x.strip() for x in requirement]
+        # requirement = gem_requirement.split(',')
+        # requirement = [x.strip() for x in requirement]
 
         # Perform comparison
         status = True
-        for req in requirement:
-            status = version_satisfy_requirement(req, debian_version)
-            if status is False:
-                break
+        status = version_satisfy_requirement(gem_requirement, debian_version)
         self.satisfied = status
 
     def debian_status(self, jsoncontent={}):
@@ -352,8 +349,9 @@ class GemDeps(object):
         for dependency in latest_gem['dependencies']:
             n = GemfileParser.Dependency()
             n.name = dependency[0]
-            n.requirement = dependency[1]
+            n.requirement = dependency[1].split(',')
             dependency_list.append(n)
+            print n.name, n.requirement
         return dependency_list
 
     def smallest_satisfiable(self, serialized, gem):
